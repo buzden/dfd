@@ -3,12 +3,12 @@ package ru.buzden.probability.dfd
 import cats.Order
 import cats.syntax.order._
 
-final case class DiscreteFiniteDistribution[A, P] private (
+sealed trait DiscreteFiniteDistribution[A, P] {
   /** Probability mass function */
-  pmf: Map[A, P]
-) {
+  def pmf: A => P
+
   /** Distribution's support, i.e. a set of arguments on which pmf gives non-zero */
-  def support: Set[A] = pmf.keySet
+  def support: Set[A]
 
   /** Cumulative distribution function */
   def cdf(implicit O: Order[A], F: Fractional[P]): A => P = a =>
@@ -20,8 +20,12 @@ object DiscreteFiniteDistribution {
   @inline private def one[P: Fractional] = implicitly[Fractional[P]].one
   private implicit def scala2catsOrdering[A: Ordering]: Order[A] = Order.fromOrdering
 
+  private final case class MapDFD[A, P](pmf: Map[A, P]) extends DiscreteFiniteDistribution[A, P]  {
+    override def support: Set[A] = pmf.keySet
+  }
+
   def apply[A, P: Fractional](pmf: Map[A, P]): Option[DiscreteFiniteDistribution[A, P]] = {
     if (pmf.values.forall(_ >= zero) && (pmf.values.sum === one))
-      Some(DiscreteFiniteDistribution(pmf filter { case (_, p) => p =!= zero })) else None
+      Some(MapDFD(pmf filter { case (_, p) => p =!= zero })) else None
   }
 }
