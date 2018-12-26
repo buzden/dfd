@@ -16,8 +16,9 @@ sealed trait DiscreteFiniteDistribution[A, P] {
 }
 
 object DiscreteFiniteDistribution {
-  @inline private def zero[P: Probability] = implicitly[Numeric[P]].zero
-  @inline private def one[P: Probability] = implicitly[Numeric[P]].one
+  @inline private def zero[P: Numeric] = implicitly[Numeric[P]].zero
+  @inline private def one[P: Numeric] = implicitly[Numeric[P]].one
+
   private implicit def scala2catsOrdering[A: Ordering]: Order[A] = Order.fromOrdering
 
   // todo to make this to be a nice typeclass for probability
