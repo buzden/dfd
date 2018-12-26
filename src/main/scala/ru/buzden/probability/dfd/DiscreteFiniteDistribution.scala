@@ -24,8 +24,7 @@ object DiscreteFiniteDistribution {
     override def support: Set[A] = pmf.keySet
   }
 
-  def apply[A, P: Fractional](pmf: Map[A, P]): Option[DiscreteFiniteDistribution[A, P]] = {
+  def apply[A, P: Fractional](pmf: Map[A, P]): Option[DiscreteFiniteDistribution[A, P]] =
     if (pmf.values.forall(_ >= zero) && (pmf.values.sum === one))
       Some(MapDFD(pmf filter { case (_, p) => p =!= zero })) else None
-  }
 }
