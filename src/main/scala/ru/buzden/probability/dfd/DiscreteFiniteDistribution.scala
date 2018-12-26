@@ -17,10 +17,6 @@ sealed trait DiscreteFiniteDistribution[A, P] {
 }
 
 object DiscreteFiniteDistribution {
-  private implicit def scala2catsOrdering[A: Ordering]: Order[A] = Order.fromOrdering
-
-  // todo to make this to be a nice typeclass for probability
-  type Probability[P] = Fractional[P]
 
   private final case class MapDFD[A, P](pmf: Map[A, P]) extends DiscreteFiniteDistribution[A, P]  {
     override def support: Set[A] = pmf.keySet
