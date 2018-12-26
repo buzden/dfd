@@ -6,7 +6,7 @@ import cats.instances.list._
 import cats.instances.map._
 import cats.syntax.foldable._
 import cats.syntax.order._
-import ru.buzden.util.numeric._
+import ru.buzden.util.numeric.syntax._
 
 import scala.Fractional.Implicits._
 

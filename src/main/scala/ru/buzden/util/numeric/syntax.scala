@@ -1,11 +1,11 @@
-package ru.buzden.util
+package ru.buzden.util.numeric
 
 import cats.{Eq, Order}
 import cats.syntax.eq._
 
 import scala.Ordering.Implicits._
 
-package object numeric {
+object syntax {
   @inline def zero[P: Numeric]: P = implicitly[Numeric[P]].zero
   @inline def one[P: Numeric]: P = implicitly[Numeric[P]].one
   @inline def two[P: Numeric]: P = 2.asNumeric
