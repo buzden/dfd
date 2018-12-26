@@ -66,7 +66,11 @@ object DiscreteFiniteDistribution {
   def bernouli[P: Probability](p: P): Option[DiscreteFiniteDistribution[Boolean, P]] =
     if (p >= zero && p <= one) DiscreteFiniteDistribution(Map(true -> p, false -> (one - p))) else None
 
-  def binomial[P: Probability, N: Integral](n: N, p: P): Option[DiscreteFiniteDistribution[N, P]] = ???
+  def binomial[P: Probability, N: Integral](n: N, p: P): Option[DiscreteFiniteDistribution[N, P]] =
+    if (p >= zero && p <= one) DiscreteFiniteDistribution((one[N] to n).toSet) { k =>
+      import Integral.Implicits._
+      n.combinations(k) * p.pow(k) * (one[P] - p).pow(n - k)
+    } else None
 
   def hypergeometric[P: Probability, N: Integral](N: N, K: N, n: N): Option[DiscreteFiniteDistribution[N, P]] = ???
 
