@@ -16,9 +16,12 @@ sealed trait DiscreteFiniteDistribution[A, P] {
 }
 
 object DiscreteFiniteDistribution {
-  @inline private def zero[P: Fractional] = implicitly[Fractional[P]].zero
-  @inline private def one[P: Fractional] = implicitly[Fractional[P]].one
+  @inline private def zero[P: Probability] = implicitly[Numeric[P]].zero
+  @inline private def one[P: Probability] = implicitly[Numeric[P]].one
   private implicit def scala2catsOrdering[A: Ordering]: Order[A] = Order.fromOrdering
+
+  // todo to make this to be a nice typeclass for probability
+  type Probability[P] = Fractional[P]
 
   private final case class MapDFD[A, P](pmf: Map[A, P]) extends DiscreteFiniteDistribution[A, P]  {
     override def support: Set[A] = pmf.keySet
@@ -27,11 +30,11 @@ object DiscreteFiniteDistribution {
   private final case class FunctionDFD[A, P](pmf: A => P, support: Set[A])
     extends DiscreteFiniteDistribution[A, P]
 
-  def apply[A, P: Fractional](pmf: Map[A, P]): Option[DiscreteFiniteDistribution[A, P]] =
+  def apply[A, P: Probability](pmf: Map[A, P]): Option[DiscreteFiniteDistribution[A, P]] =
     if (pmf.values.forall(_ >= zero) && (pmf.values.sum === one))
       Some(MapDFD(pmf filter { case (_, p) => p =!= zero })) else None
 
-  def apply[A, P: Fractional](support: Set[A])(pmf: A => P): Option[DiscreteFiniteDistribution[A, P]] =
+  def apply[A, P: Probability](support: Set[A])(pmf: A => P): Option[DiscreteFiniteDistribution[A, P]] =
     if (support.forall(pmf(_) >= zero) && (support.toSeq.map(pmf).sum === one))
       Some(FunctionDFD(pmf, support filter { pmf(_) =!= zero })) else None
 
