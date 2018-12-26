@@ -8,7 +8,7 @@ sealed trait DiscreteFiniteDistribution[A, P] {
   def pmf: A => P
 
   /** Distribution's support, i.e. a set of arguments on which pmf gives non-zero */
-  def support: Set[A]
+  def support: Set[A] // todo must be a non-empty set
 
   /** Cumulative distribution function */
   def cdf(implicit O: Order[A], F: Fractional[P]): A => P = a =>
