@@ -56,11 +56,9 @@ object DiscreteFiniteDistribution {
     else None
   }
 
-  implicit class EagerSyntax[A, P](val dfd: DiscreteFiniteDistribution[A, P]) extends AnyVal {
-    def eager: DiscreteFiniteDistribution[A, P] = dfd match {
-      case m@MapDFD(_) => m
-      case FunctionDFD(pmf, support) => MapDFD(Map(support.map { a => a -> pmf(a) }.toSeq:_*))
-    }
+  def eager[A, P](dfd: DiscreteFiniteDistribution[A, P]): DiscreteFiniteDistribution[A, P] = dfd match {
+    case m@MapDFD(_) => m
+    case FunctionDFD(pmf, support) => MapDFD(Map(support.map { a => a -> pmf(a) }.toSeq:_*))
   }
 
   // --- Examples of discrete finite distributions ---
