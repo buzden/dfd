@@ -11,7 +11,7 @@ sealed trait DiscreteFiniteDistribution[A, P] {
   def support: Set[A] // todo must be a non-empty set
 
   /** Cumulative distribution function */
-  def cdf(implicit O: Order[A], F: Fractional[P]): A => P = a =>
+  def cdf(implicit O: Order[A], N: Numeric[P]): A => P = a =>
     support.filter(_ <= a).map(pmf).sum
 }
 
