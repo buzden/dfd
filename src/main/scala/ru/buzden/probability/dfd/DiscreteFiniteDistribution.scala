@@ -24,7 +24,14 @@ object DiscreteFiniteDistribution {
     override def support: Set[A] = pmf.keySet
   }
 
+  private final case class FunctionDFD[A, P](pmf: A => P, support: Set[A])
+    extends DiscreteFiniteDistribution[A, P]
+
   def apply[A, P: Fractional](pmf: Map[A, P]): Option[DiscreteFiniteDistribution[A, P]] =
     if (pmf.values.forall(_ >= zero) && (pmf.values.sum === one))
       Some(MapDFD(pmf filter { case (_, p) => p =!= zero })) else None
+
+  def apply[A, P: Fractional](support: Set[A])(pmf: A => P): Option[DiscreteFiniteDistribution[A, P]] =
+    if (support.forall(pmf(_) >= zero) && (support.toSeq.map(pmf).sum === one))
+      Some(FunctionDFD(pmf, support filter { pmf(_) =!= zero })) else None
 }
