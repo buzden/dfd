@@ -34,4 +34,11 @@ object DiscreteFiniteDistribution {
   def apply[A, P: Fractional](support: Set[A])(pmf: A => P): Option[DiscreteFiniteDistribution[A, P]] =
     if (support.forall(pmf(_) >= zero) && (support.toSeq.map(pmf).sum === one))
       Some(FunctionDFD(pmf, support filter { pmf(_) =!= zero })) else None
+
+  implicit class EagerSyntax[A, P](val dfd: DiscreteFiniteDistribution[A, P]) extends AnyVal {
+    def eager: DiscreteFiniteDistribution[A, P] = dfd match {
+      case m@MapDFD(_) => m
+      case FunctionDFD(pmf, support) => MapDFD(Map(support.map { a => a -> pmf(a) }.toSeq:_*))
+    }
+  }
 }
