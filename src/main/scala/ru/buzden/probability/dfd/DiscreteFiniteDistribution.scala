@@ -17,6 +17,7 @@ sealed trait DiscreteFiniteDistribution[A, P] {
 }
 
 object DiscreteFiniteDistribution {
+  // --- Discrete finite distributions implementations ---
 
   private final case class MapDFD[A, P](pmf: Map[A, P]) extends DiscreteFiniteDistribution[A, P]  {
     override def support: Set[A] = pmf.keySet
@@ -24,6 +25,8 @@ object DiscreteFiniteDistribution {
 
   private final case class FunctionDFD[A, P](pmf: A => P, support: Set[A])
     extends DiscreteFiniteDistribution[A, P]
+
+  // --- Discrete finite distribution creation variants ---
 
   def apply[A, P: Probability](pmf: Map[A, P]): Option[DiscreteFiniteDistribution[A, P]] =
     if (pmf.values.forall(_ >= zero) && (pmf.values.sum === one))
