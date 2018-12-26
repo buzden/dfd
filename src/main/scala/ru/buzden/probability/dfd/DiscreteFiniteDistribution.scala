@@ -2,6 +2,7 @@ package ru.buzden.probability.dfd
 
 import cats.Order
 import cats.syntax.order._
+import ru.buzden.util.numeric._
 
 sealed trait DiscreteFiniteDistribution[A, P] {
   /** Probability mass function */
@@ -16,9 +17,6 @@ sealed trait DiscreteFiniteDistribution[A, P] {
 }
 
 object DiscreteFiniteDistribution {
-  @inline private def zero[P: Numeric] = implicitly[Numeric[P]].zero
-  @inline private def one[P: Numeric] = implicitly[Numeric[P]].one
-
   private implicit def scala2catsOrdering[A: Ordering]: Order[A] = Order.fromOrdering
 
   // todo to make this to be a nice typeclass for probability
