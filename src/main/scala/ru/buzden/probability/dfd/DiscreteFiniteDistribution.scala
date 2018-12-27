@@ -9,6 +9,7 @@ import cats.syntax.order._
 import ru.buzden.util.numeric.syntax._
 
 import scala.Fractional.Implicits._
+import scala.Integral.Implicits._
 
 sealed trait DiscreteFiniteDistribution[A, P] {
   /** Probability mass function */
@@ -66,7 +67,10 @@ object DiscreteFiniteDistribution {
   def bernouli[P: Probability](p: P): Option[DiscreteFiniteDistribution[Boolean, P]] =
     if (p >= zero && p <= one) DiscreteFiniteDistribution(Map(true -> p, false -> (one - p))) else None
 
-  def binomial[P: Probability, N: Integral](n: N, p: P): Option[DiscreteFiniteDistribution[N, P]] = ???
+  def binomial[P: Probability, N: Integral](n: N, p: P)(implicit ntop: N => P): Option[DiscreteFiniteDistribution[N, P]] =
+    if (p >= zero[P] && p <= one[P]) DiscreteFiniteDistribution((one[N] to n).toSet) { k =>
+      p.pow(k) * (one[P] - p).pow(n - k) * n.combinationsIntegral(k)
+    } else None
 
   def hypergeometric[P: Probability, N: Integral](N: N, K: N, n: N): Option[DiscreteFiniteDistribution[N, P]] = ???
 

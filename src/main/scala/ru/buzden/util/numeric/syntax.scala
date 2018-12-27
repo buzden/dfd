@@ -40,14 +40,15 @@ object syntax {
   }
 
   implicit class CombinationsSyntax[N](val n: N) extends AnyVal {
+    import scala.Numeric.Implicits._
     private def c(k: N)(div: (N, N) => N)(implicit N: Numeric[N]): N =
       if (k === zero) one
       else if (n === k) one
       else if (k > n) zero
       else div((k to n).product, (k min (n - k)).factorial)
 
-    def combinations(k: N)(implicit N: Integral[N]): N = c(k)(N.quot)
+    def combinationsIntegral(k: N)(implicit N: Integral[N]): N = c(k)(N.quot)
 
-    def combinations(k: N)(implicit N: Fractional[N]): N = c(k)(N.div)
+    def combinationsFractional(k: N)(implicit N: Fractional[N]): N = c(k)(N.div)
   }
 }
