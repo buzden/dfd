@@ -9,6 +9,7 @@ import cats.syntax.order._
 import ru.buzden.util.numeric.syntax._
 
 import scala.Fractional.Implicits._
+import scala.Integral.Implicits._
 
 sealed trait DiscreteFiniteDistribution[A, P] {
   /** Probability mass function */
@@ -68,7 +69,6 @@ object DiscreteFiniteDistribution {
 
   def binomial[P: Probability, N: Integral](n: N, p: P): Option[DiscreteFiniteDistribution[N, P]] =
     if (p >= zero[P] && p <= one[P]) DiscreteFiniteDistribution((one[N] to n).toSet) { k =>
-      import Integral.Implicits._
       p.pow(k) * (one[P] - p).pow(n - k) * n.combinationsIntegral(k)
     } else None
 
