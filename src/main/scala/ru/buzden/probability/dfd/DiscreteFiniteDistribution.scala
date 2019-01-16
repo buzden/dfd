@@ -73,7 +73,7 @@ object DiscreteFiniteDistribution {
     } else None
 
   def hypergeometric[P: Probability, N: Integral](N: N, K: N, n: N)(implicit ntop: N => P): Option[DiscreteFiniteDistribution[N, P]] =
-    if (N >= zero && K >= zero && K <= N && n >= zero && n <= N)
+    if (N >= zero[N] && K >= zero[N] && K <= N && n >= zero[N] && n <= N)
       DiscreteFiniteDistribution(((zero[N] max n + K - N) to (n min K)).toSet) { k =>
         K.combinationsIntegral(k) * (N - K).combinationsIntegral(n - k) / N.combinationsIntegral(k)
       }
