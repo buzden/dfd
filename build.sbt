@@ -2,18 +2,17 @@ name := "discrete-finite-distribution"
 
 version := "0.1"
 
-scalaVersion := "2.12.7"
+scalaVersion := "2.13.0-M5"
 
 lazy val catsVersion = "1.5.0"
 lazy val specs2Version = "4.3.6"
 
 // General stuff
 scalacOptions ++= Seq(
-  "-Ypartial-unification",
   "-language:higherKinds",
 )
 libraryDependencies += "org.typelevel" %% "cats-core" % catsVersion
-addCompilerPlugin("org.spire-math" %% "kind-projector" % "0.9.8")
+addCompilerPlugin("org.spire-math" %% "kind-projector" % "0.9.9")
 
 // Data types stuff
 libraryDependencies ++= Seq(
