@@ -1,11 +1,11 @@
 package ru.buzden.probability.dfd
 
-import cats.Order
 import cats.data.NonEmptySet
 import cats.instances.list._
 import cats.instances.map._
 import cats.syntax.foldable._
 import cats.syntax.order._
+import cats.{Eq, Order}
 import ru.buzden.util.numeric.syntax._
 
 import scala.Fractional.Implicits._
@@ -83,4 +83,12 @@ object DiscreteFiniteDistribution {
     val p = one / support.length.asNumeric
     FunctionDFD({ _ => p }, support.toSortedSet)
   }
+
+  // --- cats.Eq instance ---
+
+  implicit def dfdEq[A, P: Probability]: Eq[DiscreteFiniteDistribution[A, P]] = (d1, d2) =>
+    // Supports are equal
+    d1.support.forall(d2.support) && d2.support.forall(d1.support) &&
+      // PMF are equal on given support
+      d1.support.forall(x => d1.pmf(x) === d2.pmf(x))
 }
