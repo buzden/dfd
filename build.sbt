@@ -10,9 +10,11 @@ lazy val specs2Version = "4.3.6"
 // General stuff
 scalacOptions ++= Seq(
   "-language:higherKinds",
+  "-Ypartial-unification",
 )
 libraryDependencies += "org.typelevel" %% "cats-core" % catsVersion
 addCompilerPlugin("org.spire-math" %% "kind-projector" % "0.9.9")
+addCompilerPlugin("com.olegpy" %% "better-monadic-for" % "0.3.0-M4")
 
 // Data types stuff
 libraryDependencies ++= Seq(
