@@ -1,11 +1,9 @@
 package ru.buzden.probability.dfd
 
-import cats.Apply
 import cats.kernel.laws.discipline.EqTests
 import org.scalacheck.Arbitrary.arbitrary
 import org.scalacheck.Gen._
 import org.scalacheck.Prop.forAllNoShrink
-import org.scalacheck.cats.implicits._
 import org.scalacheck.{Arbitrary, Cogen, Gen}
 import org.specs2.matcher.MatchResult
 import org.specs2.specification.core.Fragments
@@ -54,7 +52,10 @@ class DFDSpec extends Specification with ScalaCheck with Discipline { def is = s
     override val caseName = "proportional"
 
     override def intermediate: Gen[Intermediate] =
-      nonEmptyListOf(Apply[Gen].product(arbitrary[A], posNum[Int]))
+      // todo to use analogue of `.distinct` based on `cats.Eq`.
+      nonEmptyListOf(arbitrary[A]) `map` (_.distinct) `flatMap` { as =>
+        listOfN(as.size, posNum[Int]) `map` { is => as `zip` is }
+      }
 
     override def createDfd: Intermediate => Option[DFD] = { l =>
       DiscreteFiniteDistribution.proportional(l.head, l.tail: _*)
