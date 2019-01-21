@@ -45,6 +45,36 @@ class DFDSpec extends Specification with ScalaCheck with Discipline { def is = s
     )
   }
 
+  // --- Particular DFD generation and checks cases ---
+
+  def proportionalCase[A: Arbitrary]: DfdGenCase[A, Rational] = new DfdGenOptGeneralCase[A, Rational] {
+    type Intermediate = List[(A, Int)]
+    type CheckResult = Rational
+
+    override val caseName = "proportional"
+
+    override def intermediate: Gen[Intermediate] =
+      nonEmptyListOf(Apply[Gen].product(arbitrary[A], posNum[Int]))
+
+    override def createDfd: Intermediate => Option[DFD] = { l =>
+      DiscreteFiniteDistribution.proportional(l.head, l.tail: _*)
+    }
+
+    override def checkSupport: (List[(A, Int)], Set[A]) => MatchResult[_] = (l, s) =>
+      s ==== l.map(_._1).toSet
+
+    override def checkProbabilities: (Intermediate, DFD) => MatchResult[_] = (ps, dfd) => {
+      val matches = for {
+        (a1, p1) <- ps
+        (a2, p2) <- ps
+      } yield Rational(p1, p2) ==== dfd.pmf(a1) / dfd.pmf(a2)
+
+      matches.reduce(_ and _)
+    }
+  }
+
+  // --- Auxiliary classes for organization of test cases ---
+
   trait TestCase {
     val caseName: String
     def fragments: Fragments
@@ -89,31 +119,5 @@ class DFDSpec extends Specification with ScalaCheck with Discipline { def is = s
     def checkProbabilities: MatchResult[_]
 
     protected override def probabilitiesFragments = s2"probabilities (a special case) $checkProbabilities"
-  }
-
-  def proportionalCase[A: Arbitrary]: DfdGenCase[A, Rational] = new DfdGenOptGeneralCase[A, Rational] {
-    type Intermediate = List[(A, Int)]
-    type CheckResult = Rational
-
-    override val caseName = "proportional"
-
-    override def intermediate: Gen[Intermediate] =
-      nonEmptyListOf(Apply[Gen].product(arbitrary[A], posNum[Int]))
-
-    override def createDfd: Intermediate => Option[DFD] = { l =>
-      DiscreteFiniteDistribution.proportional(l.head, l.tail: _*)
-    }
-
-    override def checkSupport: (List[(A, Int)], Set[A]) => MatchResult[_] = (l, s) =>
-      s ==== l.map(_._1).toSet
-
-    override def checkProbabilities: (Intermediate, DFD) => MatchResult[_] = (ps, dfd) => {
-      val matches = for {
-        (a1, p1) <- ps
-        (a2, p2) <- ps
-      } yield Rational(p1, p2) ==== dfd.pmf(a1) / dfd.pmf(a2)
-
-      matches.reduce(_ and _)
-    }
   }
 }
