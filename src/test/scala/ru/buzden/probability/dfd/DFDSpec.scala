@@ -11,20 +11,12 @@ import org.typelevel.discipline.specs2.Discipline
 import spire.math.Rational
 
 class DFDSpec extends Specification with ScalaCheck with Discipline { def is = s2"""
-  successfullness of creation
+  correctness of creation and created distributions
     general cases
       with normalized map
       with support and PMF
       proportional
       unnormalized
-    particular distributions
-      bernouli
-      binomial
-      hypergeometric
-  correctness of distributions
-    general cases
-      with normalized map
-      with support and PMF
     particular distributions
       bernouli
       binomial
