@@ -51,11 +51,10 @@ class DFDSpec extends Specification with ScalaCheck with Discipline { def is = s
   trait CaseDescription[A, P] {
     type Intermediate
     type DFD = DiscreteFiniteDistribution[A, P]
-    type CheckResult
 
     def intermediate: Gen[Intermediate]
     def createDfd: Intermediate => Option[DFD]
-    def checkDfd: (Intermediate, DFD) => MatchResult[CheckResult]
+    def checkDfd: (Intermediate, DFD) => MatchResult[_]
 
     def genopt: Gen[Option[DFD]] = intermediate `map` createDfd
     def gen: Gen[DFD] = genopt.suchThat(_.isDefined).map(_.get)
@@ -72,7 +71,7 @@ class DFDSpec extends Specification with ScalaCheck with Discipline { def is = s
       DiscreteFiniteDistribution.proportional(l.head, l.tail: _*)
     }
 
-    def checkDfd: (Intermediate, DFD) => MatchResult[CheckResult] = (ps, dfd) => {
+    def checkDfd: (Intermediate, DFD) => MatchResult[_] = (ps, dfd) => {
       val matches = for {
         (a1, p1) <- ps
         (a2, p2) <- ps
