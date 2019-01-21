@@ -1,6 +1,6 @@
 package ru.buzden.probability.dfd
 
-import org.scalacheck.Cogen
+import org.scalacheck.{Cogen, Gen}
 import spire.math.Rational
 
 object testInstances {
@@ -27,4 +27,6 @@ object testInstances {
     Cogen.cogenVector[(A, P)].contramap { dfd =>
       dfd.support.toVector.sorted.map(a => (a, dfd.pmf(a)))
     }
+
+  def unopt[A](gopt: Gen[Option[A]]): Gen[A] = gopt.suchThat(_.isDefined).map(_.get)
 }
