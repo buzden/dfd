@@ -36,7 +36,7 @@ class DFDSpec extends Specification with ScalaCheck with Discipline { def is = s
 
   private def eqLaws = {
     implicit val arbitraryDfdIR: Arbitrary[DiscreteFiniteDistribution[Int, Rational]] =
-      Arbitrary(unopt(GenDFD.genProportional))
+      Arbitrary(unopt(GenDFD.proportional))
 
     checkAll("DiscreteFiniteDistribution",
       EqTests[DiscreteFiniteDistribution[Int, Rational]].eqv
@@ -45,7 +45,7 @@ class DFDSpec extends Specification with ScalaCheck with Discipline { def is = s
 }
 
 object GenDFD {
-  def genProportional[A: Arbitrary, P: Probability]: Gen[Option[DiscreteFiniteDistribution[A, P]]] =
+  def proportional[A: Arbitrary, P: Probability]: Gen[Option[DiscreteFiniteDistribution[A, P]]] =
     nonEmptyListOf(Apply[Gen].product(arbitrary[A], posNum[Int])).map { l =>
       DiscreteFiniteDistribution.proportional(l.head, l.tail:_*)
     }
