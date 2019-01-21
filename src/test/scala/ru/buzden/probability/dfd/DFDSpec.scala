@@ -8,6 +8,7 @@ import org.scalacheck.Prop.forAllNoShrink
 import org.scalacheck.cats.implicits._
 import org.scalacheck.{Arbitrary, Cogen, Gen}
 import org.specs2.matcher.MatchResult
+import org.specs2.specification.core.Fragments
 import org.specs2.{ScalaCheck, Specification}
 import org.typelevel.discipline.specs2.Discipline
 import ru.buzden.probability.dfd.testInstances._
@@ -18,7 +19,7 @@ class DFDSpec extends Specification with ScalaCheck with Discipline { def is = s
     general cases
       with normalized map
       with support and PMF
-      proportional
+      ${proportionalCase[String].fragments}
       unnormalized
     particular distributions
       bernouli
@@ -44,34 +45,69 @@ class DFDSpec extends Specification with ScalaCheck with Discipline { def is = s
     )
   }
 
-  private def creationAndCorrectness[A, P](c: CaseDescription[A, P]) = {
-    forAllNoShrink(c.genopt)(_ must beSome) // todo to conjunt the check from the case
+  trait TestCase {
+    val caseName: String
+    def fragments: Fragments
   }
 
-  trait CaseDescription[A, P] {
+  trait DfdGenCase[A, P] extends TestCase {
     type Intermediate
     type DFD = DiscreteFiniteDistribution[A, P]
 
     def intermediate: Gen[Intermediate]
-    def createDfd: Intermediate => Option[DFD]
-    def checkDfd: (Intermediate, DFD) => MatchResult[_]
+    def checkSupport: (Intermediate, Set[A]) => MatchResult[_]
 
-    def genopt: Gen[Option[DFD]] = intermediate `map` createDfd
-    def gen: Gen[DFD] = genopt.suchThat(_.isDefined).map(_.get)
-    def arb: Arbitrary[DFD] = Arbitrary(gen)
+    def gen: Gen[(Intermediate, DFD)]
+    def arb: Arbitrary[DFD] = Arbitrary(gen.map(_._2))
   }
 
-  def proportionalCase[A: Arbitrary]: CaseDescription[A, Rational] = new CaseDescription[A, Rational] {
+  trait DfdGenOptCase[A, P] extends DfdGenCase[A, P] {
+    def createDfd: Intermediate => Option[DFD]
+
+    def genopt: Gen[(Intermediate, Option[DFD])] = intermediate `map` { x => (x, createDfd(x)) }
+    override def gen: Gen[(Intermediate, DFD)] =
+      genopt `suchThat` (_._2.isDefined) `map` { case (i, o) => (i, o.get) }
+
+    def fragments = s2"""
+      $caseName
+        always creates properly   ${forAllNoShrink(genopt.map(_._2))(_ must beSome)}
+        correctness of support    ${forAllNoShrink(gen){ case (i, d) => checkSupport(i, d.support)}}
+        $probabilitiesFragments
+      """
+
+    protected def probabilitiesFragments: Fragments
+  }
+
+  trait DfdGenOptGeneralCase[A, P] extends DfdGenOptCase[A, P] {
+    def checkProbabilities: (Intermediate, DFD) => MatchResult[_]
+
+    protected override def probabilitiesFragments = s2"probabilities ${
+      forAllNoShrink(gen)(checkProbabilities.tupled)}"
+  }
+
+  trait DfdGenOptSpecialCase[A, P] extends DfdGenOptCase[A, P] {
+    def checkProbabilities: MatchResult[_]
+
+    protected override def probabilitiesFragments = s2"probabilities (a special case) $checkProbabilities"
+  }
+
+  def proportionalCase[A: Arbitrary]: DfdGenCase[A, Rational] = new DfdGenOptGeneralCase[A, Rational] {
     type Intermediate = List[(A, Int)]
     type CheckResult = Rational
 
-    def intermediate: Gen[Intermediate] = nonEmptyListOf(Apply[Gen].product(arbitrary[A], posNum[Int]))
+    override val caseName = "proportional"
 
-    def createDfd: Intermediate => Option[DFD] = { l =>
+    override def intermediate: Gen[Intermediate] =
+      nonEmptyListOf(Apply[Gen].product(arbitrary[A], posNum[Int]))
+
+    override def createDfd: Intermediate => Option[DFD] = { l =>
       DiscreteFiniteDistribution.proportional(l.head, l.tail: _*)
     }
 
-    def checkDfd: (Intermediate, DFD) => MatchResult[_] = (ps, dfd) => {
+    override def checkSupport: (List[(A, Int)], Set[A]) => MatchResult[_] = (l, s) =>
+      s ==== l.map(_._1).toSet
+
+    override def checkProbabilities: (Intermediate, DFD) => MatchResult[_] = (ps, dfd) => {
       val matches = for {
         (a1, p1) <- ps
         (a2, p2) <- ps
