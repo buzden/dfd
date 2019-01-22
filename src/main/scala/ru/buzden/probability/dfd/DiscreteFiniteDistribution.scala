@@ -37,15 +37,15 @@ object DiscreteFiniteDistribution {
 
   def apply[A, P: Probability](pmf: Map[A, P]): Option[DiscreteFiniteDistribution[A, P]] =
     if (pmf.values.forall(_ >= zero) && (pmf.values.sum === one))
-      Some(MapDFD(pmf filter { case (_, p) => p =!= zero })) else None
+      Some(MapDFD(pmf `filter` { case (_, p) => p =!= zero })) else None
 
   def apply[A, P: Probability](support: Set[A])(pmf: A => P): Option[DiscreteFiniteDistribution[A, P]] =
     if (support.forall(pmf(_) >= zero) && (support.toSeq.map(pmf).sum === one))
-      Some(FunctionDFD(pmf, support filter { pmf(_) =!= zero })) else None
+      Some(FunctionDFD(pmf, support `filter` { pmf(_) =!= zero })) else None
 
   def proportional[A, P: Probability](p1: (A, Int), rest: (A, Int)*): Option[DiscreteFiniteDistribution[A, P]] = {
     def pairToProb(p: (A, Int)): (A, P) = p.copy(_2 = p._2.asNumeric)
-    unnormalized(pairToProb(p1), rest map pairToProb :_*)
+    unnormalized(pairToProb(p1), rest `map` pairToProb :_*)
   }
 
   def unnormalized[A, P: Probability](p1: (A, P), rest: (A, P)*): Option[DiscreteFiniteDistribution[A, P]] = {
@@ -53,7 +53,7 @@ object DiscreteFiniteDistribution {
     val ps = p1 :: rest.toList
     val sum = ps.foldMap(_._2)
     if (sum =!= zero)
-      DiscreteFiniteDistribution(ps foldMap { case (a, p) => Map(a -> p / sum) })
+      DiscreteFiniteDistribution(ps `foldMap` { case (a, p) => Map(a -> p / sum) })
     else None
   }
 
@@ -74,7 +74,7 @@ object DiscreteFiniteDistribution {
 
   def hypergeometric[P: Probability, N: Integral](N: N, K: N, n: N)(implicit ntop: N => P): Option[DiscreteFiniteDistribution[N, P]] =
     if (N >= zero[N] && K >= zero[N] && K <= N && n >= zero[N] && n <= N)
-      DiscreteFiniteDistribution(((zero[N] max n + K - N) to (n min K)).toSet) { k =>
+      DiscreteFiniteDistribution(((zero[N] max n + K - N) `to` (n min K)).toSet) { k =>
         K.combinationsIntegral(k) * (N - K).combinationsIntegral(n - k) / N.combinationsIntegral(k)
       }
     else None
