@@ -17,8 +17,8 @@ import spire.math.Rational
 class DFDSpec extends Specification with ScalaCheck with Discipline { def is = s2"""
   correctness of creation and created distributions
     general cases
-      with normalized map
-      with support and PMF
+      ${normalizedMapCase[String].fragments}
+      ${supportAndPmfCase[String].fragments}
       ${proportionalCase[String].fragments}
       ${unnormalizedCase[String].fragments}
     particular distributions
@@ -51,7 +51,52 @@ class DFDSpec extends Specification with ScalaCheck with Discipline { def is = s
     // todo to use analogue of `.distinct` based on `cats.Eq`.
     nonEmptyListOf(genA) `map` (_.distinct)
 
+  private def normalize(l: List[Rational]) = {
+    val sum = l.sum
+    l `map` (_ / sum)
+  }
+
   // --- Particular DFD generation and checks cases ---
+
+  def normalizedMapCase[A: Arbitrary]: TestCase[A, Rational] = new CanCheckAllProbabilities[A, Rational] {
+    override type DistrParameters = Map[A, Rational]
+    override val caseName: String = "normalized map"
+
+    override val distrParameters: Gen[DistrParameters] =
+      nonEmptyListOfDistinct(arbitrary[A]) `flatMap` { as =>
+        listOfN(as.size, posRational) `map` normalize `map` (as `zip` _) `map` { Map(_:_*) }
+      }
+
+    override def createDfd(m: DistrParameters): Option[Distr] = DiscreteFiniteDistribution(m)
+
+    override def checkSupport(m: DistrParameters, support: Set[A]): MatchResult[_] = support ==== m.keySet
+
+    override def checkProbabilities(m: DistrParameters, d: Distr): MatchResult[_] =
+      m `map` { case (a, p) => d.pmf(a) ==== p } `reduce` (_ and _)
+  }
+
+  def supportAndPmfCase[A: Arbitrary:Cogen]: TestCase[A, Rational] = new CanCheckAllProbabilities[A, Rational] {
+    override type DistrParameters = (Set[A], A => Rational)
+    override val caseName: String = "with support and PMF"
+
+    override val distrParameters: Gen[DistrParameters] = {
+      implicit val arbitraryRationalPositive: Arbitrary[Rational] = Arbitrary(posRational)
+      for {
+        support <- nonEmptyListOfDistinct(arbitrary[A])
+        f <- arbitrary[A => Rational]
+      } yield {
+        val sum = support.map(f).sum
+        (support.toSet, f `andThen` {_ / sum})
+      }
+    }
+
+    override def createDfd(sf: DistrParameters): Option[Distr] = DiscreteFiniteDistribution(sf._1)(sf._2)
+
+    override def checkSupport(sf: DistrParameters, support: Set[A]): MatchResult[_] = support ==== sf._1
+
+    override def checkProbabilities(sf: DistrParameters, d: Distr): MatchResult[_] =
+      sf._1.toList `map` { a => sf._2(a) ==== d.pmf(a) } `reduce` (_ and _)
+  }
 
   def proportionalCase[A: Arbitrary]: TestCase[A, Rational] =
     new ProportionalLike[A, Int](
