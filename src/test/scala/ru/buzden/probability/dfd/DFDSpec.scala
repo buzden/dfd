@@ -1,5 +1,6 @@
 package ru.buzden.probability.dfd
 
+import cats.data.NonEmptySet
 import cats.kernel.laws.discipline.EqTests
 import cats.syntax.apply._
 import org.scalacheck.Arbitrary.arbitrary
@@ -12,8 +13,10 @@ import org.specs2.specification.core.Fragments
 import org.specs2.{ScalaCheck, Specification}
 import org.typelevel.discipline.specs2.Discipline
 import ru.buzden.probability.dfd.testInstances._
-import spire.math.Rational
 import ru.buzden.util.numeric.syntax._
+import spire.math.Rational
+
+import scala.collection.immutable.SortedSet
 
 class DFDSpec extends Specification with ScalaCheck with Discipline { def is = s2"""
   correctness of creation and created distributions
@@ -30,7 +33,7 @@ class DFDSpec extends Specification with ScalaCheck with Discipline { def is = s
       hypergeometric
         correctness of support
         probabilities (a special case)
-      uniform
+      ${uniformCase[String].fragments}
   $eqLaws
   eagerization preserves support and probabilities
   """
@@ -161,6 +164,26 @@ class DFDSpec extends Specification with ScalaCheck with Discipline { def is = s
 
     override def checkProbabilities(p: DistrParameters, d: Distr): MatchResult[_] =
       (d.pmf(true) ==== p) and (d.pmf(false) ==== (1 - p))
+  }
+
+  def uniformCase[A: Arbitrary:Ordering]: TestCase[A, Rational] = new CanCheckAllProbabilities[A, Rational] {
+    override type DistrParameters = NonEmptySet[A]
+    override val caseName: String = "uniform"
+
+    override val distrParameters: Gen[DistrParameters] =
+      nonEmptyListOfDistinct(arbitrary[A]) `map` { SortedSet[A](_:_*) } `map` { NonEmptySet.fromSetUnsafe(_) }
+
+    override def createDfd(s: DistrParameters): Option[Distr] =
+      Some(DiscreteFiniteDistribution.uniform(s))
+
+    override def checkSupport(s: DistrParameters, support: Set[A]): MatchResult[_] =
+      support ==== s.toSortedSet
+
+    override def checkProbabilities(s: DistrParameters, d: Distr): MatchResult[_] = {
+      val expectedP = Rational(1, s.length)
+      d.support.toList `map` (d.pmf(_) ==== expectedP) `reduce` (_ and _)
+    }
+
   }
 
   // --- Auxiliary classes for organization of test cases ---
