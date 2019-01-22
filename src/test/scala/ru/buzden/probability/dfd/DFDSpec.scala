@@ -122,7 +122,6 @@ class DFDSpec extends Specification with ScalaCheck with Discipline { def is = s
     val div: (I, I) => Rational
 
     ) extends TestCase[A, Rational, List[(A, I)]] {
-    type CheckResult = Rational
 
     override val distrParameters: Gen[DistrParameters] =
       nonEmptyListOfDistinct(arbitrary[A]) `flatMap` { as =>
