@@ -1,9 +1,11 @@
 package ru.buzden.probability.dfd
 
 import cats.kernel.laws.discipline.EqTests
+import cats.syntax.apply._
 import org.scalacheck.Arbitrary.arbitrary
 import org.scalacheck.Gen._
 import org.scalacheck.Prop.forAllNoShrink
+import org.scalacheck.cats.implicits._
 import org.scalacheck.{Arbitrary, Cogen, Gen}
 import org.specs2.matcher.MatchResult
 import org.specs2.specification.core.Fragments
@@ -18,7 +20,7 @@ class DFDSpec extends Specification with ScalaCheck with Discipline { def is = s
       with normalized map
       with support and PMF
       ${proportionalCase[String].fragments}
-      unnormalized
+      ${unnormalizedCase[String].fragments}
     particular distributions
       bernouli
       binomial
@@ -43,22 +45,43 @@ class DFDSpec extends Specification with ScalaCheck with Discipline { def is = s
     )
   }
 
+  private val posRational: Gen[Rational] = (posNum[Long], posNum[Long]).mapN(Rational.apply)
+
   // --- Particular DFD generation and checks cases ---
 
-  def proportionalCase[A: Arbitrary]: TestCase[A, Rational] = new CanCheckAllProbabilities[A, Rational] {
-    type DistrParameters = List[(A, Int)]
-    type CheckResult = Rational
+  def proportionalCase[A: Arbitrary]: TestCase[A, Rational] =
+    new ProportionalLike[A, Int](
+      "proportional",
+      DiscreteFiniteDistribution.proportional,
+      posNum[Int],
+      Rational(_, _))
 
-    override val caseName = "proportional"
+  def unnormalizedCase[A: Arbitrary]: TestCase[A, Rational] =
+    new ProportionalLike[A, Rational](
+      "unnormalized",
+      DiscreteFiniteDistribution.unnormalized,
+      posRational,
+      _ / _)
+
+  class ProportionalLike[A: Arbitrary, I](
+    val caseName: String,
+    val create: ((A, I), (A, I)*) => Option[DiscreteFiniteDistribution[A, Rational]],
+    val genP: Gen[I],
+    val div: (I, I) => Rational
+
+    ) extends CanCheckAllProbabilities[A, Rational] {
+
+    type DistrParameters = List[(A, I)]
+    type CheckResult = Rational
 
     override val distrParameters: Gen[DistrParameters] =
       // todo to use analogue of `.distinct` based on `cats.Eq`.
       nonEmptyListOf(arbitrary[A]) `map` (_.distinct) `flatMap` { as =>
-        listOfN(as.size, posNum[Int]) `map` { is => as `zip` is }
+        listOfN(as.size, genP) `map` { is => as `zip` is }
       }
 
     override def createDfd(l: DistrParameters): Option[Distr] =
-      DiscreteFiniteDistribution.proportional(l.head, l.tail: _*)
+      create(l.head, l.tail: _*)
 
     override def checkSupport(l: DistrParameters, s: Set[A]): MatchResult[_] =
       s ==== l.map(_._1).toSet
@@ -67,7 +90,7 @@ class DFDSpec extends Specification with ScalaCheck with Discipline { def is = s
       val matches = for {
         (a1, p1) <- ps
         (a2, p2) <- ps
-      } yield Rational(p1, p2) ==== dfd.pmf(a1) / dfd.pmf(a2)
+      } yield div(p1, p2) ==== dfd.pmf(a1) / dfd.pmf(a2)
 
       matches.reduce(_ and _)
     }
