@@ -17,6 +17,7 @@ import spire.math.Rational
 
 import scala.collection.immutable.SortedSet
 
+//noinspection TypeAnnotation
 class DFDSpec extends Specification with ScalaCheck with Discipline { def is = s2"""
   correctness of creation and created distributions
     general cases
