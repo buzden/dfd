@@ -57,14 +57,13 @@ class DFDSpec extends Specification with ScalaCheck with Discipline { def is = s
         listOfN(as.size, posNum[Int]) `map` { is => as `zip` is }
       }
 
-    override def createDfd: DistrParameters => Option[Distr] = { l =>
+    override def createDfd(l: DistrParameters): Option[Distr] =
       DiscreteFiniteDistribution.proportional(l.head, l.tail: _*)
-    }
 
-    override def checkSupport: (List[(A, Int)], Set[A]) => MatchResult[_] = (l, s) =>
+    override def checkSupport(l: DistrParameters, s: Set[A]): MatchResult[_] =
       s ==== l.map(_._1).toSet
 
-    override def checkProbabilities: (DistrParameters, Distr) => MatchResult[_] = (ps, dfd) => {
+    override def checkProbabilities(ps: DistrParameters, dfd: Distr): MatchResult[_] = {
       val matches = for {
         (a1, p1) <- ps
         (a2, p2) <- ps
@@ -84,14 +83,14 @@ class DFDSpec extends Specification with ScalaCheck with Discipline { def is = s
     def fragments: Fragments
 
     def distrParameters: Gen[DistrParameters]
-    def checkSupport: (DistrParameters, Set[A]) => MatchResult[_]
+    def checkSupport(p: DistrParameters, support: Set[A]): MatchResult[_]
 
     def gen: Gen[(DistrParameters, Distr)]
     def arb: Arbitrary[Distr] = Arbitrary(gen.map(_._2))
   }
 
   trait OptionalCreationCase[A, P] extends TestCase[A, P] {
-    def createDfd: DistrParameters => Option[Distr]
+    def createDfd(p: DistrParameters): Option[Distr]
 
     def genopt: Gen[(DistrParameters, Option[Distr])] = distrParameters `map` { x => (x, createDfd(x)) }
     override def gen: Gen[(DistrParameters, Distr)] =
@@ -108,10 +107,11 @@ class DFDSpec extends Specification with ScalaCheck with Discipline { def is = s
   }
 
   trait CanCheckAllProbabilities[A, P] extends OptionalCreationCase[A, P] {
-    def checkProbabilities: (DistrParameters, Distr) => MatchResult[_]
+    def checkProbabilities(p: DistrParameters, d: Distr): MatchResult[_]
 
     protected override def probabilitiesFragments = s2"probabilities ${
-      forAllNoShrink(gen)(checkProbabilities.tupled)}"
+      forAllNoShrink(gen) { (checkProbabilities _).tupled }
+    }"
   }
 
   trait CanCheckOnlySpecialCase[A, P] extends OptionalCreationCase[A, P] {
