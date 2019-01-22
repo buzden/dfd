@@ -64,15 +64,11 @@ object DFDSpec extends Specification with ScalaCheck with Discipline { def is = 
 
   def normalizedMapCase[A: Arbitrary] = TestCase[A, Rational, Map[A, Rational]](
     caseName = "normalized map",
-
     distrParameters = nonEmptyListOfDistinct(arbitrary[A]) `flatMap` { as =>
       listOfN(as.size, posRational) `map` normalize `map` (as `zip` _) `map` { Map(_:_*) }
     },
-
     createDfd = DiscreteFiniteDistribution(_),
-
     checkSupport = (m, support) => support ==== m.keySet,
-
     checkProbabilities = Left { (m, d) =>
       m `map` { case (a, p) => d.pmf(a) ==== p } `reduce` (_ and _)
     }
@@ -93,7 +89,6 @@ object DFDSpec extends Specification with ScalaCheck with Discipline { def is = 
     },
 
     createDfd = sf => DiscreteFiniteDistribution(sf._1)(sf._2),
-
     checkSupport = (sf, support) => support ==== sf._1,
 
     checkProbabilities = Left { (sf, d) =>
@@ -128,7 +123,6 @@ object DFDSpec extends Specification with ScalaCheck with Discipline { def is = 
     },
 
     createDfd = l => create(l.head, l.tail: _*),
-
     checkSupport = (l, s) => s ==== l.map(_._1).toSet,
 
     checkProbabilities = Left { (ps, dfd) =>
@@ -160,7 +154,6 @@ object DFDSpec extends Specification with ScalaCheck with Discipline { def is = 
       nonEmptyListOfDistinct(arbitrary[A]) `map` { SortedSet[A](_:_*) } `map` { NonEmptySet.fromSetUnsafe },
 
     createDfd = s => Some(DiscreteFiniteDistribution.uniform(s)),
-
     checkSupport = (s, support) => support ==== s.toSortedSet,
 
     checkProbabilities = Left { (s, d) =>
