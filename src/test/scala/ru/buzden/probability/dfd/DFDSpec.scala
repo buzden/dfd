@@ -193,23 +193,17 @@ class DFDSpec extends Specification with ScalaCheck with Discipline { def is = s
     type Distr = DiscreteFiniteDistribution[A, P]
 
     val caseName: String
-    def fragments: Fragments
 
     val distrParameters: Gen[DistrParameters]
     def checkSupport(p: DistrParameters, support: Set[A]): MatchResult[_]
-
-    val gen: Gen[(DistrParameters, Distr)]
-    lazy val arb: Arbitrary[Distr] = Arbitrary(gen.map(_._2))
-  }
-
-  trait OptionalCreationCase[A, P] extends TestCase[A, P] {
     def createDfd(p: DistrParameters): Option[Distr]
 
     lazy val genopt: Gen[(DistrParameters, Option[Distr])] = distrParameters `map` { x => (x, createDfd(x)) }
-    override lazy val gen: Gen[(DistrParameters, Distr)] =
+    lazy val gen: Gen[(DistrParameters, Distr)] =
       genopt `suchThat` (_._2.isDefined) `map` { case (i, o) => (i, o.get) }
+    lazy val arb: Arbitrary[Distr] = Arbitrary(gen.map(_._2))
 
-    override def fragments = s2"""
+    def fragments = s2"""
       $caseName
         always creates properly            ${forAllNoShrink(genopt.map(_._2))(_ must beSome)}
         correctness of support set         ${forAllNoShrink(gen){ case (i, d) => checkSupport(i, d.support)}}
@@ -219,7 +213,7 @@ class DFDSpec extends Specification with ScalaCheck with Discipline { def is = s
     protected def probabilitiesFragments: Fragments
   }
 
-  trait CanCheckAllProbabilities[A, P] extends OptionalCreationCase[A, P] {
+  trait CanCheckAllProbabilities[A, P] extends TestCase[A, P] {
     def checkProbabilities(p: DistrParameters, d: Distr): MatchResult[_]
 
     protected override def probabilitiesFragments = s2"probabilities ${
@@ -227,7 +221,7 @@ class DFDSpec extends Specification with ScalaCheck with Discipline { def is = s
     }"
   }
 
-  trait CanCheckOnlySpecialCase[A, P] extends OptionalCreationCase[A, P] {
+  trait CanCheckOnlySpecialCase[A, P] extends TestCase[A, P] {
     def checkProbabilities: MatchResult[_]
 
     protected override def probabilitiesFragments = s2"probabilities (a special case) $checkProbabilities"
