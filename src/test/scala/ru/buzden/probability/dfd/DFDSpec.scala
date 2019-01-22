@@ -45,26 +45,26 @@ class DFDSpec extends Specification with ScalaCheck with Discipline { def is = s
 
   // --- Particular DFD generation and checks cases ---
 
-  def proportionalCase[A: Arbitrary]: DfdGenCase[A, Rational] = new DfdGenOptGeneralCase[A, Rational] {
-    type Intermediate = List[(A, Int)]
+  def proportionalCase[A: Arbitrary]: TestCase[A, Rational] = new CanCheckAllProbabilities[A, Rational] {
+    type DistrParameters = List[(A, Int)]
     type CheckResult = Rational
 
     override val caseName = "proportional"
 
-    override def intermediate: Gen[Intermediate] =
+    override def distrParameters: Gen[DistrParameters] =
       // todo to use analogue of `.distinct` based on `cats.Eq`.
       nonEmptyListOf(arbitrary[A]) `map` (_.distinct) `flatMap` { as =>
         listOfN(as.size, posNum[Int]) `map` { is => as `zip` is }
       }
 
-    override def createDfd: Intermediate => Option[DFD] = { l =>
+    override def createDfd: DistrParameters => Option[Distr] = { l =>
       DiscreteFiniteDistribution.proportional(l.head, l.tail: _*)
     }
 
     override def checkSupport: (List[(A, Int)], Set[A]) => MatchResult[_] = (l, s) =>
       s ==== l.map(_._1).toSet
 
-    override def checkProbabilities: (Intermediate, DFD) => MatchResult[_] = (ps, dfd) => {
+    override def checkProbabilities: (DistrParameters, Distr) => MatchResult[_] = (ps, dfd) => {
       val matches = for {
         (a1, p1) <- ps
         (a2, p2) <- ps
@@ -76,27 +76,25 @@ class DFDSpec extends Specification with ScalaCheck with Discipline { def is = s
 
   // --- Auxiliary classes for organization of test cases ---
 
-  trait TestCase {
+  trait TestCase[A, P] {
+    type DistrParameters
+    type Distr = DiscreteFiniteDistribution[A, P]
+
     val caseName: String
     def fragments: Fragments
+
+    def distrParameters: Gen[DistrParameters]
+    def checkSupport: (DistrParameters, Set[A]) => MatchResult[_]
+
+    def gen: Gen[(DistrParameters, Distr)]
+    def arb: Arbitrary[Distr] = Arbitrary(gen.map(_._2))
   }
 
-  trait DfdGenCase[A, P] extends TestCase {
-    type Intermediate
-    type DFD = DiscreteFiniteDistribution[A, P]
+  trait OptionalCreationCase[A, P] extends TestCase[A, P] {
+    def createDfd: DistrParameters => Option[Distr]
 
-    def intermediate: Gen[Intermediate]
-    def checkSupport: (Intermediate, Set[A]) => MatchResult[_]
-
-    def gen: Gen[(Intermediate, DFD)]
-    def arb: Arbitrary[DFD] = Arbitrary(gen.map(_._2))
-  }
-
-  trait DfdGenOptCase[A, P] extends DfdGenCase[A, P] {
-    def createDfd: Intermediate => Option[DFD]
-
-    def genopt: Gen[(Intermediate, Option[DFD])] = intermediate `map` { x => (x, createDfd(x)) }
-    override def gen: Gen[(Intermediate, DFD)] =
+    def genopt: Gen[(DistrParameters, Option[Distr])] = distrParameters `map` { x => (x, createDfd(x)) }
+    override def gen: Gen[(DistrParameters, Distr)] =
       genopt `suchThat` (_._2.isDefined) `map` { case (i, o) => (i, o.get) }
 
     def fragments = s2"""
@@ -109,14 +107,14 @@ class DFDSpec extends Specification with ScalaCheck with Discipline { def is = s
     protected def probabilitiesFragments: Fragments
   }
 
-  trait DfdGenOptGeneralCase[A, P] extends DfdGenOptCase[A, P] {
-    def checkProbabilities: (Intermediate, DFD) => MatchResult[_]
+  trait CanCheckAllProbabilities[A, P] extends OptionalCreationCase[A, P] {
+    def checkProbabilities: (DistrParameters, Distr) => MatchResult[_]
 
     protected override def probabilitiesFragments = s2"probabilities ${
       forAllNoShrink(gen)(checkProbabilities.tupled)}"
   }
 
-  trait DfdGenOptSpecialCase[A, P] extends DfdGenOptCase[A, P] {
+  trait CanCheckOnlySpecialCase[A, P] extends OptionalCreationCase[A, P] {
     def checkProbabilities: MatchResult[_]
 
     protected override def probabilitiesFragments = s2"probabilities (a special case) $checkProbabilities"
