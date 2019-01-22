@@ -9,7 +9,6 @@ import org.scalacheck.Prop.forAllNoShrink
 import org.scalacheck.cats.implicits._
 import org.scalacheck.{Arbitrary, Cogen, Gen}
 import org.specs2.matcher.MatchResult
-import org.specs2.specification.core.Fragments
 import org.specs2.{ScalaCheck, Specification}
 import org.typelevel.discipline.specs2.Discipline
 import ru.buzden.probability.dfd.testInstances._
@@ -62,7 +61,7 @@ class DFDSpec extends Specification with ScalaCheck with Discipline { def is = s
 
   // --- Particular DFD generation and checks cases ---
 
-  def normalizedMapCase[A: Arbitrary]: TestCase[A, Rational] = new CanCheckAllProbabilities[A, Rational] {
+  def normalizedMapCase[A: Arbitrary]: TestCase[A, Rational] = new TestCase[A, Rational] {
     override type DistrParameters = Map[A, Rational]
     override val caseName: String = "normalized map"
 
@@ -75,11 +74,12 @@ class DFDSpec extends Specification with ScalaCheck with Discipline { def is = s
 
     override def checkSupport(m: DistrParameters, support: Set[A]): MatchResult[_] = support ==== m.keySet
 
-    override def checkProbabilities(m: DistrParameters, d: Distr): MatchResult[_] =
+    override val checkProbabilities = Left { (m, d) =>
       m `map` { case (a, p) => d.pmf(a) ==== p } `reduce` (_ and _)
+    }
   }
 
-  def supportAndPmfCase[A: Arbitrary:Cogen]: TestCase[A, Rational] = new CanCheckAllProbabilities[A, Rational] {
+  def supportAndPmfCase[A: Arbitrary:Cogen]: TestCase[A, Rational] = new TestCase[A, Rational] {
     override type DistrParameters = (Set[A], A => Rational)
     override val caseName: String = "with support and PMF"
 
@@ -98,8 +98,9 @@ class DFDSpec extends Specification with ScalaCheck with Discipline { def is = s
 
     override def checkSupport(sf: DistrParameters, support: Set[A]): MatchResult[_] = support ==== sf._1
 
-    override def checkProbabilities(sf: DistrParameters, d: Distr): MatchResult[_] =
+    override val checkProbabilities = Left { (sf, d) =>
       sf._1.toList `map` { a => sf._2(a) ==== d.pmf(a) } `reduce` (_ and _)
+    }
   }
 
   def proportionalCase[A: Arbitrary]: TestCase[A, Rational] =
@@ -122,7 +123,7 @@ class DFDSpec extends Specification with ScalaCheck with Discipline { def is = s
     val genP: Gen[I],
     val div: (I, I) => Rational
 
-    ) extends CanCheckAllProbabilities[A, Rational] {
+    ) extends TestCase[A, Rational] {
 
     type DistrParameters = List[(A, I)]
     type CheckResult = Rational
@@ -138,7 +139,7 @@ class DFDSpec extends Specification with ScalaCheck with Discipline { def is = s
     override def checkSupport(l: DistrParameters, s: Set[A]): MatchResult[_] =
       s ==== l.map(_._1).toSet
 
-    override def checkProbabilities(ps: DistrParameters, dfd: Distr): MatchResult[_] = {
+    override val checkProbabilities = Left { (ps, dfd) =>
       val matches = for {
         (a1, p1) <- ps
         (a2, p2) <- ps
@@ -150,7 +151,7 @@ class DFDSpec extends Specification with ScalaCheck with Discipline { def is = s
 
   // --- Particular distribution cases ---
 
-  lazy val bernouliCase: TestCase[Boolean, Rational] = new CanCheckAllProbabilities[Boolean, Rational] {
+  lazy val bernouliCase: TestCase[Boolean, Rational] = new TestCase[Boolean, Rational] {
     override type DistrParameters = Rational
     override val caseName: String = "bernouli"
 
@@ -162,11 +163,12 @@ class DFDSpec extends Specification with ScalaCheck with Discipline { def is = s
     override def checkSupport(p: DistrParameters, support: Set[Boolean]): MatchResult[_] =
       support must not be empty
 
-    override def checkProbabilities(p: DistrParameters, d: Distr): MatchResult[_] =
+    override val checkProbabilities = Left { (p, d) =>
       (d.pmf(true) ==== p) and (d.pmf(false) ==== (1 - p))
+    }
   }
 
-  def uniformCase[A: Arbitrary:Ordering]: TestCase[A, Rational] = new CanCheckAllProbabilities[A, Rational] {
+  def uniformCase[A: Arbitrary:Ordering]: TestCase[A, Rational] = new TestCase[A, Rational] {
     override type DistrParameters = NonEmptySet[A]
     override val caseName: String = "uniform"
 
@@ -179,7 +181,7 @@ class DFDSpec extends Specification with ScalaCheck with Discipline { def is = s
     override def checkSupport(s: DistrParameters, support: Set[A]): MatchResult[_] =
       support ==== s.toSortedSet
 
-    override def checkProbabilities(s: DistrParameters, d: Distr): MatchResult[_] = {
+    override val checkProbabilities = Left { (s, d) =>
       val expectedP = Rational(1, s.length)
       d.support.toList `map` (d.pmf(_) ==== expectedP) `reduce` (_ and _)
     }
@@ -197,6 +199,7 @@ class DFDSpec extends Specification with ScalaCheck with Discipline { def is = s
     val distrParameters: Gen[DistrParameters]
     def checkSupport(p: DistrParameters, support: Set[A]): MatchResult[_]
     def createDfd(p: DistrParameters): Option[Distr]
+    val checkProbabilities: Either[(DistrParameters, Distr) => MatchResult[_], MatchResult[_]]
 
     lazy val genopt: Gen[(DistrParameters, Option[Distr])] = distrParameters `map` { x => (x, createDfd(x)) }
     lazy val gen: Gen[(DistrParameters, Distr)] =
@@ -224,20 +227,9 @@ class DFDSpec extends Specification with ScalaCheck with Discipline { def is = s
         }
       }
 
-    protected def probabilitiesFragments: Fragments
-  }
-
-  trait CanCheckAllProbabilities[A, P] extends TestCase[A, P] {
-    def checkProbabilities(p: DistrParameters, d: Distr): MatchResult[_]
-
-    protected override def probabilitiesFragments = s2"probabilities ${
-      forAllNoShrink(gen) { (checkProbabilities _).tupled }
-    }"
-  }
-
-  trait CanCheckOnlySpecialCase[A, P] extends TestCase[A, P] {
-    def checkProbabilities: MatchResult[_]
-
-    protected override def probabilitiesFragments = s2"probabilities (a special case) $checkProbabilities"
+    private def probabilitiesFragments = checkProbabilities match {
+      case Left(checkF)  => s2"probabilities ${forAllNoShrink(gen) { checkF.tupled } }"
+      case Right(result) => s2"probabilities (a special case) $result"
+    }
   }
 }
