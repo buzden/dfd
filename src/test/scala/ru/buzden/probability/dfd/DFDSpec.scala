@@ -211,8 +211,8 @@ class DFDSpec extends Specification with ScalaCheck with Discipline { def is = s
 
     override def fragments = s2"""
       $caseName
-        always creates properly   ${forAllNoShrink(genopt.map(_._2))(_ must beSome)}
-        correctness of support    ${forAllNoShrink(gen){ case (i, d) => checkSupport(i, d.support)}}
+        always creates properly            ${forAllNoShrink(genopt.map(_._2))(_ must beSome)}
+        correctness of support set         ${forAllNoShrink(gen){ case (i, d) => checkSupport(i, d.support)}}
         $probabilitiesFragments
       """
 
