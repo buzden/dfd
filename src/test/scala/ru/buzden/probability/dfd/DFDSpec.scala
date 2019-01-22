@@ -13,6 +13,7 @@ import org.specs2.{ScalaCheck, Specification}
 import org.typelevel.discipline.specs2.Discipline
 import ru.buzden.probability.dfd.testInstances._
 import spire.math.Rational
+import ru.buzden.util.numeric.syntax._
 
 class DFDSpec extends Specification with ScalaCheck with Discipline { def is = s2"""
   correctness of creation and created distributions
@@ -22,7 +23,7 @@ class DFDSpec extends Specification with ScalaCheck with Discipline { def is = s
       ${proportionalCase[String].fragments}
       ${unnormalizedCase[String].fragments}
     particular distributions
-      bernouli
+      ${bernouliCase.fragments}
       binomial
         correctness of support
         probabilities (a special case)
@@ -142,6 +143,24 @@ class DFDSpec extends Specification with ScalaCheck with Discipline { def is = s
 
       matches.reduce(_ and _)
     }
+  }
+
+  // --- Particular distribution cases ---
+
+  lazy val bernouliCase: TestCase[Boolean, Rational] = new CanCheckAllProbabilities[Boolean, Rational] {
+    override type DistrParameters = Rational
+    override val caseName: String = "bernouli"
+
+    override val distrParameters: Gen[DistrParameters] = chooseNum(zero[Rational], one[Rational])
+
+    override def createDfd(p: DistrParameters): Option[Distr] =
+      DiscreteFiniteDistribution.bernouli(p)
+
+    override def checkSupport(p: DistrParameters, support: Set[Boolean]): MatchResult[_] =
+      support must not be empty
+
+    override def checkProbabilities(p: DistrParameters, d: Distr): MatchResult[_] =
+      (d.pmf(true) ==== p) and (d.pmf(false) ==== (1 - p))
   }
 
   // --- Auxiliary classes for organization of test cases ---
