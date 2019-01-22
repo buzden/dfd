@@ -51,7 +51,7 @@ class DFDSpec extends Specification with ScalaCheck with Discipline { def is = s
 
     override val caseName = "proportional"
 
-    override def distrParameters: Gen[DistrParameters] =
+    override val distrParameters: Gen[DistrParameters] =
       // todo to use analogue of `.distinct` based on `cats.Eq`.
       nonEmptyListOf(arbitrary[A]) `map` (_.distinct) `flatMap` { as =>
         listOfN(as.size, posNum[Int]) `map` { is => as `zip` is }
@@ -82,21 +82,21 @@ class DFDSpec extends Specification with ScalaCheck with Discipline { def is = s
     val caseName: String
     def fragments: Fragments
 
-    def distrParameters: Gen[DistrParameters]
+    val distrParameters: Gen[DistrParameters]
     def checkSupport(p: DistrParameters, support: Set[A]): MatchResult[_]
 
-    def gen: Gen[(DistrParameters, Distr)]
-    def arb: Arbitrary[Distr] = Arbitrary(gen.map(_._2))
+    val gen: Gen[(DistrParameters, Distr)]
+    lazy val arb: Arbitrary[Distr] = Arbitrary(gen.map(_._2))
   }
 
   trait OptionalCreationCase[A, P] extends TestCase[A, P] {
     def createDfd(p: DistrParameters): Option[Distr]
 
-    def genopt: Gen[(DistrParameters, Option[Distr])] = distrParameters `map` { x => (x, createDfd(x)) }
-    override def gen: Gen[(DistrParameters, Distr)] =
+    lazy val genopt: Gen[(DistrParameters, Option[Distr])] = distrParameters `map` { x => (x, createDfd(x)) }
+    override lazy val gen: Gen[(DistrParameters, Distr)] =
       genopt `suchThat` (_._2.isDefined) `map` { case (i, o) => (i, o.get) }
 
-    def fragments = s2"""
+    override def fragments = s2"""
       $caseName
         always creates properly   ${forAllNoShrink(genopt.map(_._2))(_ must beSome)}
         correctness of support    ${forAllNoShrink(gen){ case (i, d) => checkSupport(i, d.support)}}
