@@ -62,27 +62,26 @@ class DFDSpec extends Specification with ScalaCheck with Discipline { def is = s
 
   // --- Particular DFD generation and checks cases ---
 
-  def normalizedMapCase[A: Arbitrary] = new TestCase[A, Rational, Map[A, Rational]] {
-    override val caseName: String = "normalized map"
+  def normalizedMapCase[A: Arbitrary] = TestCase[A, Rational, Map[A, Rational]](
+    caseName = "normalized map",
 
-    override val distrParameters: Gen[DistrParameters] =
-      nonEmptyListOfDistinct(arbitrary[A]) `flatMap` { as =>
-        listOfN(as.size, posRational) `map` normalize `map` (as `zip` _) `map` { Map(_:_*) }
-      }
+    distrParameters = nonEmptyListOfDistinct(arbitrary[A]) `flatMap` { as =>
+      listOfN(as.size, posRational) `map` normalize `map` (as `zip` _) `map` { Map(_:_*) }
+    },
 
-    override def createDfd(m: DistrParameters): Option[Distr] = DiscreteFiniteDistribution(m)
+    createDfd = DiscreteFiniteDistribution(_),
 
-    override def checkSupport(m: DistrParameters, support: Set[A]): MatchResult[_] = support ==== m.keySet
+    checkSupport = (m, support) => support ==== m.keySet,
 
-    override val checkProbabilities = Left { (m, d) =>
+    checkProbabilities = Left { (m, d) =>
       m `map` { case (a, p) => d.pmf(a) ==== p } `reduce` (_ and _)
     }
-  }
+  )
 
-  def supportAndPmfCase[A: Arbitrary:Cogen] = new TestCase[A, Rational, (Set[A], A => Rational)] {
-    override val caseName: String = "with support and PMF"
+  def supportAndPmfCase[A: Arbitrary:Cogen] = TestCase[A, Rational, (Set[A], A => Rational)](
+    caseName = "with support and PMF",
 
-    override val distrParameters: Gen[DistrParameters] = {
+    distrParameters = {
       implicit val arbitraryRationalPositive: Arbitrary[Rational] = Arbitrary(posRational)
       for {
         support <- nonEmptyListOfDistinct(arbitrary[A])
@@ -91,51 +90,48 @@ class DFDSpec extends Specification with ScalaCheck with Discipline { def is = s
         val sum = support.map(f).sum
         (support.toSet, f `andThen` {_ / sum})
       }
-    }
+    },
 
-    override def createDfd(sf: DistrParameters): Option[Distr] = DiscreteFiniteDistribution(sf._1)(sf._2)
+    createDfd = sf => DiscreteFiniteDistribution(sf._1)(sf._2),
 
-    override def checkSupport(sf: DistrParameters, support: Set[A]): MatchResult[_] = support ==== sf._1
+    checkSupport = (sf, support) => support ==== sf._1,
 
-    override val checkProbabilities = Left { (sf, d) =>
+    checkProbabilities = Left { (sf, d) =>
       sf._1.toList `map` { a => sf._2(a) ==== d.pmf(a) } `reduce` (_ and _)
     }
-  }
+  )
 
   def proportionalCase[A: Arbitrary] =
-    new ProportionalLike[A, Int](
+    proportionalLike[A, Int](
       "proportional",
       DiscreteFiniteDistribution.proportional,
       posNum[Int],
       Rational(_, _))
 
   def unnormalizedCase[A: Arbitrary] =
-    new ProportionalLike[A, Rational](
+    proportionalLike[A, Rational](
       "unnormalized",
       DiscreteFiniteDistribution.unnormalized,
       posRational,
       _ / _)
 
-  class ProportionalLike[A: Arbitrary, I](
-    val caseName: String,
-    val create: ((A, I), (A, I)*) => Option[DiscreteFiniteDistribution[A, Rational]],
-    val genP: Gen[I],
-    val div: (I, I) => Rational
+  private def proportionalLike[A: Arbitrary, I](
+    caseN: String,
+    create: ((A, I), (A, I)*) => Option[DiscreteFiniteDistribution[A, Rational]],
+    genP: Gen[I],
+    div: (I, I) => Rational
+  ) = TestCase[A, Rational, List[(A, I)]](
+    caseName = caseN,
 
-    ) extends TestCase[A, Rational, List[(A, I)]] {
+    distrParameters = nonEmptyListOfDistinct(arbitrary[A]) `flatMap` { as =>
+      listOfN(as.size, genP) `map` { is => as `zip` is }
+    },
 
-    override val distrParameters: Gen[DistrParameters] =
-      nonEmptyListOfDistinct(arbitrary[A]) `flatMap` { as =>
-        listOfN(as.size, genP) `map` { is => as `zip` is }
-      }
+    createDfd = l => create(l.head, l.tail: _*),
 
-    override def createDfd(l: DistrParameters): Option[Distr] =
-      create(l.head, l.tail: _*)
+    checkSupport = (l, s) => s ==== l.map(_._1).toSet,
 
-    override def checkSupport(l: DistrParameters, s: Set[A]): MatchResult[_] =
-      s ==== l.map(_._1).toSet
-
-    override val checkProbabilities = Left { (ps, dfd) =>
+    checkProbabilities = Left { (ps, dfd) =>
       val matches = for {
         (a1, p1) <- ps
         (a2, p2) <- ps
@@ -143,57 +139,47 @@ class DFDSpec extends Specification with ScalaCheck with Discipline { def is = s
 
       matches.reduce(_ and _)
     }
-  }
+  )
 
   // --- Particular distribution cases ---
 
-  lazy val bernouliCase = new TestCase[Boolean, Rational, Rational] {
-    override val caseName: String = "bernouli"
-
-    override val distrParameters: Gen[DistrParameters] = chooseNum(zero[Rational], one[Rational])
-
-    override def createDfd(p: DistrParameters): Option[Distr] =
-      DiscreteFiniteDistribution.bernouli(p)
-
-    override def checkSupport(p: DistrParameters, support: Set[Boolean]): MatchResult[_] =
-      support must not be empty
-
-    override val checkProbabilities = Left { (p, d) =>
+  lazy val bernouliCase = TestCase[Boolean, Rational, Rational](
+    caseName = "bernouli",
+    distrParameters = chooseNum(zero[Rational], one[Rational]),
+    createDfd = DiscreteFiniteDistribution.bernouli,
+    checkSupport = (_, support) => support must not be empty,
+    checkProbabilities = Left { (p, d) =>
       (d.pmf(true) ==== p) and (d.pmf(false) ==== (1 - p))
     }
-  }
+  )
 
-  def uniformCase[A: Arbitrary:Ordering] = new TestCase[A, Rational, NonEmptySet[A]] {
-    override val caseName: String = "uniform"
+  def uniformCase[A: Arbitrary:Ordering] = TestCase[A, Rational, NonEmptySet[A]](
+    caseName = "uniform",
 
-    override val distrParameters: Gen[DistrParameters] =
-      nonEmptyListOfDistinct(arbitrary[A]) `map` { SortedSet[A](_:_*) } `map` { NonEmptySet.fromSetUnsafe(_) }
+    distrParameters =
+      nonEmptyListOfDistinct(arbitrary[A]) `map` { SortedSet[A](_:_*) } `map` { NonEmptySet.fromSetUnsafe },
 
-    override def createDfd(s: DistrParameters): Option[Distr] =
-      Some(DiscreteFiniteDistribution.uniform(s))
+    createDfd = s => Some(DiscreteFiniteDistribution.uniform(s)),
 
-    override def checkSupport(s: DistrParameters, support: Set[A]): MatchResult[_] =
-      support ==== s.toSortedSet
+    checkSupport = (s, support) => support ==== s.toSortedSet,
 
-    override val checkProbabilities = Left { (s, d) =>
+    checkProbabilities = Left { (s, d) =>
       val expectedP = Rational(1, s.length)
       d.support.toList `map` (d.pmf(_) ==== expectedP) `reduce` (_ and _)
     }
-
-  }
+  )
 
   // --- Auxiliary classes for organization of test cases ---
 
-  trait TestCase[A, P, Param] {
+  final case class TestCase[A, P, Param](
+    caseName: String,
+    distrParameters: Gen[Param],
+    createDfd: Param => Option[DiscreteFiniteDistribution[A, P]],
+    checkSupport: (Param, Set[A]) => MatchResult[_],
+    checkProbabilities: Either[(Param, DiscreteFiniteDistribution[A, P]) => MatchResult[_], MatchResult[_]],
+  ) {
     type DistrParameters = Param
     type Distr = DiscreteFiniteDistribution[A, P]
-
-    val caseName: String
-
-    val distrParameters: Gen[DistrParameters]
-    def checkSupport(p: DistrParameters, support: Set[A]): MatchResult[_]
-    def createDfd(p: DistrParameters): Option[Distr]
-    val checkProbabilities: Either[(DistrParameters, Distr) => MatchResult[_], MatchResult[_]]
 
     lazy val genopt: Gen[(DistrParameters, Option[Distr])] = distrParameters `map` { x => (x, createDfd(x)) }
     lazy val gen: Gen[(DistrParameters, Distr)] =
