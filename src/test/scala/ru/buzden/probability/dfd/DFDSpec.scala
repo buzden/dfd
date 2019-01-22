@@ -61,8 +61,7 @@ class DFDSpec extends Specification with ScalaCheck with Discipline { def is = s
 
   // --- Particular DFD generation and checks cases ---
 
-  def normalizedMapCase[A: Arbitrary]: TestCase[A, Rational] = new TestCase[A, Rational] {
-    override type DistrParameters = Map[A, Rational]
+  def normalizedMapCase[A: Arbitrary] = new TestCase[A, Rational, Map[A, Rational]] {
     override val caseName: String = "normalized map"
 
     override val distrParameters: Gen[DistrParameters] =
@@ -79,8 +78,7 @@ class DFDSpec extends Specification with ScalaCheck with Discipline { def is = s
     }
   }
 
-  def supportAndPmfCase[A: Arbitrary:Cogen]: TestCase[A, Rational] = new TestCase[A, Rational] {
-    override type DistrParameters = (Set[A], A => Rational)
+  def supportAndPmfCase[A: Arbitrary:Cogen] = new TestCase[A, Rational, (Set[A], A => Rational)] {
     override val caseName: String = "with support and PMF"
 
     override val distrParameters: Gen[DistrParameters] = {
@@ -103,14 +101,14 @@ class DFDSpec extends Specification with ScalaCheck with Discipline { def is = s
     }
   }
 
-  def proportionalCase[A: Arbitrary]: TestCase[A, Rational] =
+  def proportionalCase[A: Arbitrary] =
     new ProportionalLike[A, Int](
       "proportional",
       DiscreteFiniteDistribution.proportional,
       posNum[Int],
       Rational(_, _))
 
-  def unnormalizedCase[A: Arbitrary]: TestCase[A, Rational] =
+  def unnormalizedCase[A: Arbitrary] =
     new ProportionalLike[A, Rational](
       "unnormalized",
       DiscreteFiniteDistribution.unnormalized,
@@ -123,9 +121,7 @@ class DFDSpec extends Specification with ScalaCheck with Discipline { def is = s
     val genP: Gen[I],
     val div: (I, I) => Rational
 
-    ) extends TestCase[A, Rational] {
-
-    type DistrParameters = List[(A, I)]
+    ) extends TestCase[A, Rational, List[(A, I)]] {
     type CheckResult = Rational
 
     override val distrParameters: Gen[DistrParameters] =
@@ -151,8 +147,7 @@ class DFDSpec extends Specification with ScalaCheck with Discipline { def is = s
 
   // --- Particular distribution cases ---
 
-  lazy val bernouliCase: TestCase[Boolean, Rational] = new TestCase[Boolean, Rational] {
-    override type DistrParameters = Rational
+  lazy val bernouliCase = new TestCase[Boolean, Rational, Rational] {
     override val caseName: String = "bernouli"
 
     override val distrParameters: Gen[DistrParameters] = chooseNum(zero[Rational], one[Rational])
@@ -168,8 +163,7 @@ class DFDSpec extends Specification with ScalaCheck with Discipline { def is = s
     }
   }
 
-  def uniformCase[A: Arbitrary:Ordering]: TestCase[A, Rational] = new TestCase[A, Rational] {
-    override type DistrParameters = NonEmptySet[A]
+  def uniformCase[A: Arbitrary:Ordering] = new TestCase[A, Rational, NonEmptySet[A]] {
     override val caseName: String = "uniform"
 
     override val distrParameters: Gen[DistrParameters] =
@@ -190,8 +184,8 @@ class DFDSpec extends Specification with ScalaCheck with Discipline { def is = s
 
   // --- Auxiliary classes for organization of test cases ---
 
-  trait TestCase[A, P] {
-    type DistrParameters
+  trait TestCase[A, P, Param] {
+    type DistrParameters = Param
     type Distr = DiscreteFiniteDistribution[A, P]
 
     val caseName: String
