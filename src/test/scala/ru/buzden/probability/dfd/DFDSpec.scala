@@ -203,12 +203,26 @@ class DFDSpec extends Specification with ScalaCheck with Discipline { def is = s
       genopt `suchThat` (_._2.isDefined) `map` { case (i, o) => (i, o.get) }
     lazy val arb: Arbitrary[Distr] = Arbitrary(gen.map(_._2))
 
-    def fragments = s2"""
+    def fragments(implicit A: Arbitrary[A], P: Numeric[P]) = s2"""
       $caseName
         always creates properly            ${forAllNoShrink(genopt.map(_._2))(_ must beSome)}
         correctness of support set         ${forAllNoShrink(gen){ case (i, d) => checkSupport(i, d.support)}}
+        pmf != zero when in support        $pmfNonZeroWhenInSupport
+        pmf == zero when not in support    $pmfIsZeroWhenNotInSupport
         $probabilitiesFragments
       """
+
+    private def pmfNonZeroWhenInSupport(implicit A: Arbitrary[A], P: Numeric[P]) =
+      forAllNoShrink(gen) { case (_, d) =>
+        d.support.toList `map` (d.pmf(_) !=== zero[P]) `reduce` (_ and _)
+      }
+
+    private def pmfIsZeroWhenNotInSupport(implicit A: Arbitrary[A], P: Numeric[P]) =
+      forAllNoShrink(gen) { case (_, d) =>
+        forAllNoShrink(arbitrary[A] `filterNot` d.support) { notInSupport =>
+          d.pmf(notInSupport) ==== zero[P]
+        }
+      }
 
     protected def probabilitiesFragments: Fragments
   }
