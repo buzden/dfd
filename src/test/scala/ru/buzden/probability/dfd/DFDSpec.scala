@@ -47,6 +47,10 @@ class DFDSpec extends Specification with ScalaCheck with Discipline { def is = s
 
   private val posRational: Gen[Rational] = (posNum[Long], posNum[Long]).mapN(Rational.apply)
 
+  private def nonEmptyListOfDistinct[A](genA: Gen[A]): Gen[List[A]] =
+    // todo to use analogue of `.distinct` based on `cats.Eq`.
+    nonEmptyListOf(genA) `map` (_.distinct)
+
   // --- Particular DFD generation and checks cases ---
 
   def proportionalCase[A: Arbitrary]: TestCase[A, Rational] =
@@ -75,8 +79,7 @@ class DFDSpec extends Specification with ScalaCheck with Discipline { def is = s
     type CheckResult = Rational
 
     override val distrParameters: Gen[DistrParameters] =
-      // todo to use analogue of `.distinct` based on `cats.Eq`.
-      nonEmptyListOf(arbitrary[A]) `map` (_.distinct) `flatMap` { as =>
+      nonEmptyListOfDistinct(arbitrary[A]) `flatMap` { as =>
         listOfN(as.size, genP) `map` { is => as `zip` is }
       }
 
