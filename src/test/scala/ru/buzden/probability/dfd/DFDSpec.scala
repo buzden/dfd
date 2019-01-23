@@ -97,8 +97,8 @@ object DFDSpec extends Specification with ScalaCheck with Discipline { def is = 
     createDfd = sf => DiscreteFiniteDistribution(sf._1)(sf._2),
     checkSupport = (sf, support) => support ==== sf._1,
 
-    checkProbabilities = { (sf, d) =>
-      sf._1.toList `map` { a => sf._2(a) ==== d.pmf(a) } `reduce` (_ and _)
+    checkProbabilities = { case ((s, f), d) =>
+      s.toList `map` { a => f(a) ==== d.pmf(a) } `reduce` (_ and _)
     }
   )
 
