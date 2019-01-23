@@ -227,7 +227,7 @@ object DFDSpec extends Specification with ScalaCheck with Discipline { def is = 
         values of probabilities            ${forAllNoShrink(gen)(checkProbabilities.tupled)}
       """
 
-    private def pmfNonZeroWhenInSupport(implicit A: Arbitrary[A], P: Numeric[P]) =
+    private def pmfNonZeroWhenInSupport(implicit P: Numeric[P]) =
       forAllNoShrink(gen) { case (_, d) =>
         d.support.toList `map` (d.pmf(_) !=== zero[P]) `reduce` (_ and _)
       }
@@ -239,7 +239,7 @@ object DFDSpec extends Specification with ScalaCheck with Discipline { def is = 
         }
       }
 
-    private def pmfSumIsOne(implicit A: Arbitrary[A], P: Numeric[P]) =
+    private def pmfSumIsOne(implicit P: Numeric[P]) =
       forAllNoShrink(gen) { case (_, d) =>
         d.support.toList.map(d.pmf).sum ==== one[P]
       }
