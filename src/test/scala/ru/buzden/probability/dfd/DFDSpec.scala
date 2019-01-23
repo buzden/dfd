@@ -4,6 +4,7 @@ import cats.Apply
 import cats.data.NonEmptySet
 import cats.kernel.laws.discipline.EqTests
 import cats.syntax.apply._
+import cats.syntax.eq._
 import org.scalacheck.Arbitrary.arbitrary
 import org.scalacheck.Gen._
 import org.scalacheck.Prop.forAllNoShrink
@@ -57,6 +58,9 @@ object DFDSpec extends Specification with ScalaCheck with Discipline { def is = 
   private val nonNegRational: Gen[Rational] = rational(nonNegNum[Long])
   private def between0and1[N: Numeric:Choose]: Gen[N] = chooseNum(zero[N], one[N])
 
+  private def listOfNWithNonZero[A: Numeric](n: Int, genA: Gen[A]): Gen[List[A]] =
+    listOfN(n, genA) `suchThat` { _.exists(_ =!= zero[A]) }
+
   private def nonEmptyListOfDistinct[A](genA: Gen[A]): Gen[List[A]] =
     // todo to use analogue of `.distinct` based on `cats.Eq`.
     nonEmptyListOf(genA) `map` (_.distinct)
@@ -71,7 +75,7 @@ object DFDSpec extends Specification with ScalaCheck with Discipline { def is = 
   def normalizedMapCase[A: Arbitrary] = TestCase[A, Rational, Map[A, Rational]](
     caseName = "normalized map",
     distrParameters = nonEmptyListOfDistinct(arbitrary[A]) `flatMap` { as =>
-      listOfN(as.size, posRational) `map` normalize `map` (as `zip` _) `map` { Map(_:_*) }
+      listOfNWithNonZero(as.size, nonNegRational) `map` normalize `map` (as `zip` _) `map` { Map(_:_*) }
     },
     createDfd = DiscreteFiniteDistribution(_),
     checkSupport = (m, support) => support ==== m.keySet,
@@ -84,7 +88,7 @@ object DFDSpec extends Specification with ScalaCheck with Discipline { def is = 
     caseName = "with support and PMF",
 
     distrParameters = {
-      implicit val arbitraryRationalPositive: Arbitrary[Rational] = Arbitrary(posRational)
+      implicit val _: Arbitrary[Rational] = Arbitrary(nonNegRational)
       for {
         support <- nonEmptyListOfDistinct(arbitrary[A])
         f <- arbitrary[A => Rational]
@@ -106,17 +110,17 @@ object DFDSpec extends Specification with ScalaCheck with Discipline { def is = 
     proportionalLike[A, Int](
       "proportional",
       DiscreteFiniteDistribution.proportional,
-      posNum[Int],
+      nonNegNum[Int],
       Rational(_, _))
 
   def unnormalizedCase[A: Arbitrary] =
     proportionalLike[A, Rational](
       "unnormalized",
       DiscreteFiniteDistribution.unnormalized,
-      posRational,
+      nonNegRational,
       _ / _)
 
-  private def proportionalLike[A: Arbitrary, I](
+  private def proportionalLike[A: Arbitrary, I: Numeric](
     caseN: String,
     create: ((A, I), (A, I)*) => Option[DiscreteFiniteDistribution[A, Rational]],
     genP: Gen[I],
@@ -125,7 +129,7 @@ object DFDSpec extends Specification with ScalaCheck with Discipline { def is = 
     caseName = caseN,
 
     distrParameters = nonEmptyListOfDistinct(arbitrary[A]) `flatMap` { as =>
-      listOfN(as.size, genP) `map` { is => as `zip` is }
+      listOfNWithNonZero(as.size, genP) `map` { is => as `zip` is }
     },
 
     createDfd = l => create(l.head, l.tail: _*),
