@@ -120,7 +120,7 @@ object DFDSpec extends Specification with ScalaCheck with Discipline { def is = 
     caseN: String,
     create: ((A, I), (A, I)*) => Option[DiscreteFiniteDistribution[A, Rational]],
     genP: Gen[I],
-    div: (I, I) => Rational
+    div: (I, I) => Rational,
   ) = TestCase[A, Rational, List[(A, I)]](
     caseName = caseN,
 
