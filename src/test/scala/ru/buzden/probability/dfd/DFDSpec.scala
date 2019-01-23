@@ -215,15 +215,16 @@ object DFDSpec extends Specification with ScalaCheck with Discipline { def is = 
     lazy val genopt: Gen[(DistrParameters, Option[Distr])] = distrParameters `map` { x => (x, createDfd(x)) }
     lazy val gen: Gen[(DistrParameters, Distr)] =
       genopt `suchThat` (_._2.isDefined) `map` { case (i, o) => (i, o.get) }
-    lazy val arb: Arbitrary[Distr] = Arbitrary(gen.map(_._2))
+    lazy val genD: Gen[Distr] = gen.map(_._2)
+    lazy val arb: Arbitrary[Distr] = Arbitrary(genD)
 
     def fragments(implicit A: Arbitrary[A], P: Numeric[P]) = s2"""
       $caseName
         always creates properly            ${forAllNoShrink(genopt.map(_._2))(_ must beSome)}
         correctness of support set         ${forAllNoShrink(gen){ case (i, d) => checkSupport(i, d.support) }}
-        pmf != zero when in support        ${forAllNoShrink(gen){ case (_, d) => pmfNonZeroWhenInSupport(d) }}
-        pmf == zero when not in support    ${forAllNoShrink(gen){ case (_, d) => pmfIsZeroWhenNotInSupport(d) }}
-        sum of all probabilities is one    ${forAllNoShrink(gen){ case (_, d) => pmfSumIsOne(d) }}
+        pmf != zero when in support        ${forAllNoShrink(genD)(pmfNonZeroWhenInSupport)}
+        pmf == zero when not in support    ${forAllNoShrink(genD)(pmfIsZeroWhenNotInSupport)}
+        sum of all probabilities is one    ${forAllNoShrink(genD)(pmfSumIsOne)}
         values of probabilities            ${forAllNoShrink(gen)(checkProbabilities.tupled)}
       """
 
