@@ -50,7 +50,7 @@ object DFDSpec extends Specification with ScalaCheck with Discipline { def is = 
   }
 
   private val posRational: Gen[Rational] = (posNum[Long], posNum[Long]).mapN(Rational.apply)
-  private val rational01: Gen[Rational] = chooseNum(zero[Rational], one[Rational])
+  private def between0and1[N: Numeric:Choose]: Gen[N] = chooseNum(zero[N], one[N])
 
   private def nonEmptyListOfDistinct[A](genA: Gen[A]): Gen[List[A]] =
     // todo to use analogue of `.distinct` based on `cats.Eq`.
@@ -140,7 +140,7 @@ object DFDSpec extends Specification with ScalaCheck with Discipline { def is = 
 
   lazy val bernouliCase = TestCase[Boolean, Rational, Rational](
     caseName = "bernouli",
-    distrParameters = rational01,
+    distrParameters = between0and1[Rational],
     createDfd = DiscreteFiniteDistribution.bernouli,
     checkSupport = (_, support) => support must not be empty,
     checkProbabilities = Left { (p, d) =>
