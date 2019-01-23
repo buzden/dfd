@@ -201,6 +201,7 @@ object DFDSpec extends Specification with ScalaCheck with Discipline { def is = 
         correctness of support set         ${forAllNoShrink(gen){ case (i, d) => checkSupport(i, d.support)}}
         pmf != zero when in support        $pmfNonZeroWhenInSupport
         pmf == zero when not in support    $pmfIsZeroWhenNotInSupport
+        sum of all probabilities is one    $pmfSumIsOne
         $probabilitiesFragments
       """
 
@@ -214,6 +215,11 @@ object DFDSpec extends Specification with ScalaCheck with Discipline { def is = 
         forAllNoShrink(arbitrary[A] `filterNot` d.support) { notInSupport =>
           d.pmf(notInSupport) ==== zero[P]
         }
+      }
+
+    private def pmfSumIsOne(implicit A: Arbitrary[A], P: Numeric[P]) =
+      forAllNoShrink(gen) { case (_, d) =>
+        d.support.toList.map(d.pmf).sum ==== one[P]
       }
 
     private def probabilitiesFragments = checkProbabilities match {
