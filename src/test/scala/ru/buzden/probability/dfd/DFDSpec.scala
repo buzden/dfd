@@ -75,7 +75,7 @@ object DFDSpec extends Specification with ScalaCheck with Discipline { def is = 
     },
     createDfd = DiscreteFiniteDistribution(_),
     checkSupport = (m, support) => support ==== m.keySet,
-    checkProbabilities = Left { (m, d) =>
+    checkProbabilities = { (m, d) =>
       m `map` { case (a, p) => d.pmf(a) ==== p } `reduce` (_ and _)
     }
   )
@@ -97,7 +97,7 @@ object DFDSpec extends Specification with ScalaCheck with Discipline { def is = 
     createDfd = sf => DiscreteFiniteDistribution(sf._1)(sf._2),
     checkSupport = (sf, support) => support ==== sf._1,
 
-    checkProbabilities = Left { (sf, d) =>
+    checkProbabilities = { (sf, d) =>
       sf._1.toList `map` { a => sf._2(a) ==== d.pmf(a) } `reduce` (_ and _)
     }
   )
@@ -131,7 +131,7 @@ object DFDSpec extends Specification with ScalaCheck with Discipline { def is = 
     createDfd = l => create(l.head, l.tail: _*),
     checkSupport = (l, s) => s ==== l.map(_._1).toSet,
 
-    checkProbabilities = Left { (ps, dfd) =>
+    checkProbabilities = { (ps, dfd) =>
       val matches = for {
         (a1, p1) <- ps
         (a2, p2) <- ps
@@ -148,7 +148,7 @@ object DFDSpec extends Specification with ScalaCheck with Discipline { def is = 
     distrParameters = between0and1[Rational],
     createDfd = DiscreteFiniteDistribution.bernouli,
     checkSupport = (_, support) => support must not be empty,
-    checkProbabilities = Left { (p, d) =>
+    checkProbabilities = { (p, d) =>
       (d.pmf(true) ==== p) and (d.pmf(false) ==== (1 - p))
     }
   )
@@ -161,7 +161,7 @@ object DFDSpec extends Specification with ScalaCheck with Discipline { def is = 
     distrParameters = Apply[Gen].product(nonNegNum[Int], between0and1[Rational]),
     createDfd = (DiscreteFiniteDistribution.binomial[Rational, Int] _).tupled,
     checkSupport = (np, support) => support ==== (0 to np._1).toSet,
-    checkProbabilities = Left { case ((n, p), d) =>
+    checkProbabilities = { case ((n, p), d) =>
       def bin(k: Int): Rational = binomial(n, k) * p.pow(k) * (one[Rational] - p).pow(n - k)
       (0 to n) `map` { k => d.pmf(k) ==== bin(k) } `reduce` (_ and _)
     }
@@ -179,7 +179,7 @@ object DFDSpec extends Specification with ScalaCheck with Discipline { def is = 
     checkSupport = { case ((nn, kk, n), support) =>
       support ==== hypergeometricSupport(nn, kk, n).toSet
     },
-    checkProbabilities = Left { case ((nn, kk, n), d) =>
+    checkProbabilities = { case ((nn, kk, n), d) =>
       def p(k: Int): Rational = binomial(kk, k) * binomial(nn - kk, n - k) / binomial(nn, n)
       hypergeometricSupport(nn, kk, n) `map` { k => d.pmf(k) ==== p(k) } `reduce` (_ and _)
     }
@@ -194,7 +194,7 @@ object DFDSpec extends Specification with ScalaCheck with Discipline { def is = 
     createDfd = s => Some(DiscreteFiniteDistribution.uniform(s)),
     checkSupport = (s, support) => support ==== s.toSortedSet,
 
-    checkProbabilities = Left { (s, d) =>
+    checkProbabilities = { (s, d) =>
       val expectedP = Rational(1, s.length)
       d.support.toList `map` (d.pmf(_) ==== expectedP) `reduce` (_ and _)
     }
@@ -207,7 +207,7 @@ object DFDSpec extends Specification with ScalaCheck with Discipline { def is = 
     distrParameters: Gen[Param],
     createDfd: Param => Option[DiscreteFiniteDistribution[A, P]],
     checkSupport: (Param, Set[A]) => MatchResult[_],
-    checkProbabilities: Either[(Param, DiscreteFiniteDistribution[A, P]) => MatchResult[_], MatchResult[_]],
+    checkProbabilities: (Param, DiscreteFiniteDistribution[A, P]) => MatchResult[_],
   ) {
     type DistrParameters = Param
     type Distr = DiscreteFiniteDistribution[A, P]
@@ -224,7 +224,7 @@ object DFDSpec extends Specification with ScalaCheck with Discipline { def is = 
         pmf != zero when in support        $pmfNonZeroWhenInSupport
         pmf == zero when not in support    $pmfIsZeroWhenNotInSupport
         sum of all probabilities is one    $pmfSumIsOne
-        $probabilitiesFragments
+        values of probabilities            ${forAllNoShrink(gen)(checkProbabilities.tupled)}
       """
 
     private def pmfNonZeroWhenInSupport(implicit A: Arbitrary[A], P: Numeric[P]) =
@@ -243,10 +243,5 @@ object DFDSpec extends Specification with ScalaCheck with Discipline { def is = 
       forAllNoShrink(gen) { case (_, d) =>
         d.support.toList.map(d.pmf).sum ==== one[P]
       }
-
-    private def probabilitiesFragments = checkProbabilities match {
-      case Left(checkF)  => s2"probabilities ${forAllNoShrink(gen) { checkF.tupled } }"
-      case Right(result) => s2"probabilities (a special case) $result"
-    }
   }
 }
