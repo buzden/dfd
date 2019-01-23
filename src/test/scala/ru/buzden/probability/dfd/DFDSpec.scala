@@ -78,7 +78,7 @@ object DFDSpec extends Specification with ScalaCheck with Discipline { def is = 
       listOfNWithNonZero(as.size, nonNegRational) `map` normalize `map` (as `zip` _) `map` { Map(_:_*) }
     },
     createDfd = DiscreteFiniteDistribution(_),
-    checkSupport = (m, support) => support ==== m.keySet,
+    checkSupport = (m, support) => support ==== m.filter(_._2 =!= zero[Rational]).keySet,
     checkProbabilities = { (m, d) =>
       m `map` { case (a, p) => d.pmf(a) ==== p } `reduce` (_ and _)
     }
@@ -99,7 +99,7 @@ object DFDSpec extends Specification with ScalaCheck with Discipline { def is = 
     },
 
     createDfd = sf => DiscreteFiniteDistribution(sf._1)(sf._2),
-    checkSupport = (sf, support) => support ==== sf._1,
+    checkSupport = { case ((s, f), support) => support ==== s.filter { f(_) =!= zero[Rational] } },
 
     checkProbabilities = { case ((s, f), d) =>
       s.toList `map` { a => f(a) ==== d.pmf(a) } `reduce` (_ and _)
@@ -133,12 +133,13 @@ object DFDSpec extends Specification with ScalaCheck with Discipline { def is = 
     },
 
     createDfd = l => create(l.head, l.tail: _*),
-    checkSupport = (l, s) => s ==== l.map(_._1).toSet,
+    checkSupport = (l, s) => s ==== l.filter(_._2 =!= zero[I]).map(_._1).toSet,
 
     checkProbabilities = { (ps, dfd) =>
+      val psnn = ps.filter(_._2 =!= zero[I])
       val matches = for {
-        (a1, p1) <- ps
-        (a2, p2) <- ps
+        (a1, p1) <- psnn
+        (a2, p2) <- psnn
       } yield div(p1, p2) ==== dfd.pmf(a1) / dfd.pmf(a2)
 
       matches.reduce(_ and _)
