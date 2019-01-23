@@ -220,28 +220,22 @@ object DFDSpec extends Specification with ScalaCheck with Discipline { def is = 
     def fragments(implicit A: Arbitrary[A], P: Numeric[P]) = s2"""
       $caseName
         always creates properly            ${forAllNoShrink(genopt.map(_._2))(_ must beSome)}
-        correctness of support set         ${forAllNoShrink(gen){ case (i, d) => checkSupport(i, d.support)}}
-        pmf != zero when in support        $pmfNonZeroWhenInSupport
-        pmf == zero when not in support    $pmfIsZeroWhenNotInSupport
-        sum of all probabilities is one    $pmfSumIsOne
+        correctness of support set         ${forAllNoShrink(gen){ case (i, d) => checkSupport(i, d.support) }}
+        pmf != zero when in support        ${forAllNoShrink(gen){ case (_, d) => pmfNonZeroWhenInSupport(d) }}
+        pmf == zero when not in support    ${forAllNoShrink(gen){ case (_, d) => pmfIsZeroWhenNotInSupport(d) }}
+        sum of all probabilities is one    ${forAllNoShrink(gen){ case (_, d) => pmfSumIsOne(d) }}
         values of probabilities            ${forAllNoShrink(gen)(checkProbabilities.tupled)}
       """
 
-    private def pmfNonZeroWhenInSupport(implicit P: Numeric[P]) =
-      forAllNoShrink(gen) { case (_, d) =>
-        d.support.toList `map` (d.pmf(_) !=== zero[P]) `reduce` (_ and _)
+    private def pmfNonZeroWhenInSupport(d: Distr)(implicit P: Numeric[P]) =
+      d.support.toList `map` (d.pmf(_) !=== zero[P]) `reduce` (_ and _)
+
+    private def pmfIsZeroWhenNotInSupport(d: Distr)(implicit A: Arbitrary[A], P: Numeric[P]) =
+      forAllNoShrink(arbitrary[A] `filterNot` d.support) { notInSupport =>
+        d.pmf(notInSupport) ==== zero[P]
       }
 
-    private def pmfIsZeroWhenNotInSupport(implicit A: Arbitrary[A], P: Numeric[P]) =
-      forAllNoShrink(gen) { case (_, d) =>
-        forAllNoShrink(arbitrary[A] `filterNot` d.support) { notInSupport =>
-          d.pmf(notInSupport) ==== zero[P]
-        }
-      }
-
-    private def pmfSumIsOne(implicit P: Numeric[P]) =
-      forAllNoShrink(gen) { case (_, d) =>
-        d.support.toList.map(d.pmf).sum ==== one[P]
-      }
+    private def pmfSumIsOne(d: Distr)(implicit P: Numeric[P]) =
+      d.support.toList.map(d.pmf).sum ==== one[P]
   }
 }
