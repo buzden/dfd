@@ -3,6 +3,7 @@ package ru.buzden.probability.dfd
 import org.scalacheck.Arbitrary.arbitrary
 import org.scalacheck.Gen.Choose
 import org.scalacheck.{Cogen, Gen}
+import org.specs2.matcher.describe.Diffable
 import spire.math.{Rational, SafeLong}
 
 object testInstances {
@@ -72,4 +73,12 @@ object testInstances {
     y <- Gen.posNum[SafeLong]
     u <- Gen.chooseNum(min.numerator * max.denominator * y, max.numerator * min.denominator * y)
   } yield Rational(u, y * min.denominator * max.denominator)
+
+  // todo to do this with contramap when it's possible
+  implicit def dfdDiffable[A, P]: Diffable[DiscreteFiniteDistribution[A, P]] = { (actual, expected) =>
+    def dfd2map(dfd: DiscreteFiniteDistribution[A, P]): Map[A, P] =
+      Map(dfd.support.toList.map(a => (a, dfd.pmf(a))):_*)
+    val diffm = implicitly[Diffable[Map[A, P]]]
+    diffm.diff(dfd2map(actual), dfd2map(expected))
+  }
 }
