@@ -34,8 +34,8 @@ object DFDSpec extends Specification with ScalaCheck with Discipline { def is = 
       ${uniformCase[String].fragments}
   $eqLaws
   relation between different distributions
-    binomial(1, p) === bernouli(p)
-    bernouli(1/2) === uniform for booleans
+    bernouli(1/2)  == uniform for booleans                                   $bernouliOfHalf
+    binomial(1, p) ~= bernouli(p)
   eagerization preserves support and probabilities
   """
 
@@ -204,6 +204,11 @@ object DFDSpec extends Specification with ScalaCheck with Discipline { def is = 
       d.support.toList `map` (d.pmf(_) ==== expectedP) `reduce` (_ and _)
     }
   )
+
+  def bernouliOfHalf = {
+    import DiscreteFiniteDistribution._
+    bernouli(Rational(1, 2)) ==== Some(uniform(NonEmptySet.of(true, false)))
+  }
 
   // --- Auxiliary classes for organization of test cases ---
 
