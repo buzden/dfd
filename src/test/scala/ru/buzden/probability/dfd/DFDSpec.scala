@@ -221,10 +221,12 @@ object DFDSpec extends Specification with ScalaCheck with Discipline { def is = 
     def fragments(implicit A: Arbitrary[A], P: Numeric[P]) = s2"""
       $caseName
         always creates properly            ${forAllNoShrink(genopt.map(_._2))(_ must beSome)}
-        correctness of support set         ${forAllNoShrink(gen){ case (i, d) => checkSupport(i, d.support) }}
+
         pmf != zero when in support        ${forAllNoShrink(genD)(pmfNonZeroWhenInSupport)}
         pmf == zero when not in support    ${forAllNoShrink(genD)(pmfIsZeroWhenNotInSupport)}
         sum of all probabilities is one    ${forAllNoShrink(genD)(pmfSumIsOne)}
+
+        correctness of support set         ${forAllNoShrink(gen){ case (i, d) => checkSupport(i, d.support) }}
         values of probabilities            ${forAllNoShrink(gen)(checkProbabilities.tupled)}
       """
 
