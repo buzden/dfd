@@ -29,9 +29,7 @@ object DFDSpec extends Specification with ScalaCheck with Discipline { def is = 
     particular distributions
       ${bernouliCase.fragments}
       ${binomialCase.fragments}
-      hypergeometric
-        correctness of support
-        probabilities (a special case)
+      ${hypergeometricCase.fragments}
       ${uniformCase[String].fragments}
   $eqLaws
   relation between different distributions
@@ -166,6 +164,24 @@ object DFDSpec extends Specification with ScalaCheck with Discipline { def is = 
     checkProbabilities = Left { case ((n, p), d) =>
       def bin(k: Int): Rational = binomial(n, k) * p.pow(k) * (one[Rational] - p).pow(n - k)
       (0 to n) `map` { k => d.pmf(k) ==== bin(k) } `reduce` (_ and _)
+    }
+  )
+
+  private def hypergeometricSupport(nn: Int, kk: Int, n: Int): Range = (0 `max` n + kk - nn) to (nn `min` kk)
+  lazy val hypergeometricCase = TestCase[Int, Rational, (Int, Int, Int)](
+    caseName = "hypergeometric",
+    distrParameters = for {
+      nn <- nonNegNum[Int]
+      kk <- chooseNum(0, nn)
+      n <- chooseNum(0, nn)
+    } yield (nn, kk, n),
+    createDfd = { case (nn, kk, n) => DiscreteFiniteDistribution.hypergeometric(nn, kk, n) },
+    checkSupport = { case ((nn, kk, n), support) =>
+      support ==== hypergeometricSupport(nn, kk, n).toSet
+    },
+    checkProbabilities = Left { case ((nn, kk, n), d) =>
+      def p(k: Int): Rational = binomial(kk, k) * binomial(nn - kk, n - k) / binomial(nn, n)
+      hypergeometricSupport(nn, kk, n) `map` { k => d.pmf(k) ==== p(k) } `reduce` (_ and _)
     }
   )
 
