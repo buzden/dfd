@@ -163,7 +163,10 @@ object DFDSpec extends Specification with ScalaCheck with Discipline { def is = 
     distrParameters = Apply[Gen].product(nonNegNum[Int], between0and1[Rational]),
     createDfd = (DiscreteFiniteDistribution.binomial[Rational, Int] _).tupled,
     checkSupport = (np, support) => support ==== (0 to np._1).toSet,
-    checkProbabilities = ???
+    checkProbabilities = Left { case ((n, p), d) =>
+      def bin(k: Int): Rational = binomial(n, k) * p.pow(k) * (one[Rational] - p).pow(n - k)
+      (0 to n) `map` { k => d.pmf(k) ==== bin(k) } `reduce` (_ and _)
+    }
   )
 
   def uniformCase[A: Arbitrary:Ordering] = TestCase[A, Rational, NonEmptySet[A]](
