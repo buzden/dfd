@@ -14,7 +14,7 @@ import org.specs2.{ScalaCheck, Specification}
 import org.typelevel.discipline.specs2.Discipline
 import ru.buzden.probability.dfd.testInstances._
 import ru.buzden.util.numeric.syntax._
-import spire.math.Rational
+import spire.math.{Rational, SafeLong}
 
 import scala.collection.immutable.SortedSet
 
@@ -154,6 +154,9 @@ object DFDSpec extends Specification with ScalaCheck with Discipline { def is = 
       (d.pmf(true) ==== p) and (d.pmf(false) ==== (1 - p))
     }
   )
+
+  private def factorial(n: Int): SafeLong = (1 to n).map { SafeLong(_) }.product
+  private def binomial(n: Int, k: Int): SafeLong = factorial(n) / (factorial(n - k) * factorial(k))
 
   lazy val binomialCase = TestCase[Int, Rational, (Int, Rational)](
     caseName = "binomial",
