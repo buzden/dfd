@@ -49,7 +49,12 @@ object DFDSpec extends Specification with ScalaCheck with Discipline { def is = 
     )
   }
 
-  private val posRational: Gen[Rational] = (posNum[Long], posNum[Long]).mapN(Rational.apply)
+  private def nonNegNum[N: Numeric:Choose]: Gen[N] = frequency(1 -> zero[N], 99 -> posNum[N])
+
+  private def rational(numerator: Gen[Long]): Gen[Rational] = (numerator, posNum[Long]).mapN(Rational.apply)
+
+  private val posRational: Gen[Rational] = rational(posNum[Long])
+  private val nonNegRational: Gen[Rational] = rational(nonNegNum[Long])
   private def between0and1[N: Numeric:Choose]: Gen[N] = chooseNum(zero[N], one[N])
 
   private def nonEmptyListOfDistinct[A](genA: Gen[A]): Gen[List[A]] =
