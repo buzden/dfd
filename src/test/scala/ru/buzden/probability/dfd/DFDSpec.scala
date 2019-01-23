@@ -1,5 +1,6 @@
 package ru.buzden.probability.dfd
 
+import cats.Apply
 import cats.data.NonEmptySet
 import cats.kernel.laws.discipline.EqTests
 import cats.syntax.apply._
@@ -27,14 +28,15 @@ object DFDSpec extends Specification with ScalaCheck with Discipline { def is = 
       ${unnormalizedCase[String].fragments}
     particular distributions
       ${bernouliCase.fragments}
-      binomial
-        correctness of support
-        probabilities (a special case)
+      ${binomialCase.fragments}
       hypergeometric
         correctness of support
         probabilities (a special case)
       ${uniformCase[String].fragments}
   $eqLaws
+  relation between different distributions
+    binomial(1, p) === bernouli(p)
+    bernouli(1/2) === uniform for booleans
   eagerization preserves support and probabilities
   """
 
@@ -151,6 +153,14 @@ object DFDSpec extends Specification with ScalaCheck with Discipline { def is = 
     checkProbabilities = Left { (p, d) =>
       (d.pmf(true) ==== p) and (d.pmf(false) ==== (1 - p))
     }
+  )
+
+  lazy val binomialCase = TestCase[Int, Rational, (Int, Rational)](
+    caseName = "binomial",
+    distrParameters = Apply[Gen].product(nonNegNum[Int], between0and1[Rational]),
+    createDfd = (DiscreteFiniteDistribution.binomial[Rational, Int] _).tupled,
+    checkSupport = (np, support) => support ==== (0 to np._1).toSet,
+    checkProbabilities = ???
   )
 
   def uniformCase[A: Arbitrary:Ordering] = TestCase[A, Rational, NonEmptySet[A]](
