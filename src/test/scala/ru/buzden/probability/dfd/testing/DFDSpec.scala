@@ -68,10 +68,9 @@ object DFDSpec extends Specification with ScalaCheck with Discipline { def is = 
       for {
         support <- nonEmptyListOfDistinct(arbitrary[A])
         f <- arbitrary[A => Rational]
-      } yield {
-        val sum = support.map(f).sum
-        (support.toSet, f `andThen` {_ / sum})
-      }
+        sum = support.map(f).sum
+        if sum =!= zero[Rational]
+      } yield (support.toSet, f `andThen` {_ / sum})
     },
 
     createDfd = sf => DiscreteFiniteDistribution(sf._1)(sf._2),
