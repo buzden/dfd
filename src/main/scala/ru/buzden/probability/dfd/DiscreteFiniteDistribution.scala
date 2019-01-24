@@ -72,7 +72,7 @@ object DiscreteFiniteDistribution {
     if (p >= zero && p <= one) DiscreteFiniteDistribution(Map(true -> p, false -> (one - p))) else None
 
   def binomial[N: Integral, P: Probability](n: N, p: P)(implicit ntop: N => P): Option[DiscreteFiniteDistribution[N, P]] =
-    if (p >= zero[P] && p <= one[P]) DiscreteFiniteDistribution((one[N] to n).toSet) { k =>
+    if (p >= zero[P] && p <= one[P]) DiscreteFiniteDistribution((zero[N] to n).toSet) { k =>
       p.pow(k) * (one[P] - p).pow(n - k) * n.combinationsI(k)
     } else None
 
