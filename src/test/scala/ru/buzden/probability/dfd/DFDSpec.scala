@@ -35,7 +35,7 @@ object DFDSpec extends Specification with ScalaCheck with Discipline { def is = 
     relation between different distributions
       bernouli(1/2)  == uniform for booleans                                 $bernouliOfHalf
       binomial(1, p) ~= bernouli(p)
-    eagerization preserves support and probabilities                         $eagerizationPreserves
+    eagerization preserves support and probabilities                         ${eagerizationPreserves[Int]}
   laws of typeclass instances
     $eqLaws
   """
@@ -122,9 +122,10 @@ object DFDSpec extends Specification with ScalaCheck with Discipline { def is = 
     }
   )
 
-  def eagerizationPreserves = forAllNoShrink(anyDfd) { dfd =>
-    DiscreteFiniteDistribution.eager(dfd) ==== dfd
-  }
+  def eagerizationPreserves[A](implicit arbD: Arbitrary[DiscreteFiniteDistribution[A, Rational]]) =
+    forAllNoShrink { dfd: DiscreteFiniteDistribution[A, Rational] =>
+      DiscreteFiniteDistribution.eager(dfd) ==== dfd
+    }
 
   // --- Particular distribution cases ---
 
@@ -235,8 +236,7 @@ object DFDSpec extends Specification with ScalaCheck with Discipline { def is = 
 
   implicit val cogenDfdIR: Cogen[DiscreteFiniteDistribution[Int, Rational]] = implicitly
 
-  implicit lazy val arbDfdIR: Arbitrary[DiscreteFiniteDistribution[Int, Rational]] = Arbitrary(anyDfd)
-  lazy val anyDfd: Gen[DiscreteFiniteDistribution[Int, Rational]] = Gen.oneOf(
+  implicit lazy val arbDfdIR: Arbitrary[DiscreteFiniteDistribution[Int, Rational]] = Arbitrary(Gen.oneOf(
     normalizedMapCase[Int].genD,
     supportAndPmfCase[Int].genD,
     proportionalCase[Int].genD,
@@ -245,7 +245,7 @@ object DFDSpec extends Specification with ScalaCheck with Discipline { def is = 
     binomialCase.genD,
     hypergeometricCase.genD,
     uniformCase[Int].genD,
-  )
+  ))
 
   private def nonNegNum[N: Numeric:Choose]: Gen[N] = frequency(1 -> zero[N], 99 -> posNum[N])
 
