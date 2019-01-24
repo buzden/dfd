@@ -34,7 +34,7 @@ object DFDSpec extends Specification with ScalaCheck with Discipline { def is = 
       ${uniformCase[String].fragments}
     relation between different distributions
       bernouli(1/2)  == uniform for booleans                                 $bernouliOfHalf
-      binomial(1, p) ~= bernouli(p)
+      binomial(1, p) ~= bernouli(p)                                          $binomialOfOne
     eagerization preserves support and probabilities                         ${eagerizationPreserves[Int]}
   laws of typeclass instances
     $eqLaws
@@ -190,6 +190,9 @@ object DFDSpec extends Specification with ScalaCheck with Discipline { def is = 
     import DiscreteFiniteDistribution._
     bernouli(Rational(1, 2)) ==== Some(uniform(NonEmptySet.of(true, false)))
   }
+
+  def binomialOfOne =
+    pending("This test requires either functor instance on DFD or bernouli be not only boolean")
 
   // --- Auxiliary classes for organization of test cases ---
 
