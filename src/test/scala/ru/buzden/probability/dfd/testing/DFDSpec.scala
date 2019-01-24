@@ -74,7 +74,7 @@ object DFDSpec extends Specification with ScalaCheck with Discipline { def is = 
     },
 
     createDfd = sf => DiscreteFiniteDistribution(sf._1)(sf._2),
-    checkSupport = { case ((s, f), support) => support ==== s.filter { f(_) =!= zero[Rational] } },
+    checkSupport = (_, support) => support must not be empty,
 
     checkProbabilities = { case ((s, f), d) =>
       s.toList `map` { a => f(a) ==== d.pmf(a) } `reduce` (_ and _)
