@@ -32,56 +32,23 @@ object DFDSpec extends Specification with ScalaCheck with Discipline { def is = 
       ${binomialCase.fragments}
       ${hypergeometricCase.fragments}
       ${uniformCase[String].fragments}
-  $eqLaws
-  relation between different distributions
-    bernouli(1/2)  == uniform for booleans                                   $bernouliOfHalf
-    binomial(1, p) ~= bernouli(p)
-  eagerization preserves support and probabilities                           $eagerizationPreserves
+    relation between different distributions
+      bernouli(1/2)  == uniform for booleans                                 $bernouliOfHalf
+      binomial(1, p) ~= bernouli(p)
+    eagerization preserves support and probabilities                         $eagerizationPreserves
+  laws of typeclass instances
+    $eqLaws
   """
 
-  implicit val cogenDfdIR: Cogen[DiscreteFiniteDistribution[Int, Rational]] = implicitly
-  lazy val anyDfd: Gen[DiscreteFiniteDistribution[Int, Rational]] = Gen.oneOf(
-    normalizedMapCase[Int].genD,
-    supportAndPmfCase[Int].genD,
-    proportionalCase[Int].genD,
-    unnormalizedCase[Int].genD,
-    // no bernouli case until it's for booleans
-    binomialCase.genD,
-    hypergeometricCase.genD,
-    uniformCase[Int].genD,
-  )
+  // --- Thing-in-ifself-like checks ---
 
-  private def eqLaws = {
+  def eqLaws = {
     implicit val arbitraryDfdIR: Arbitrary[DiscreteFiniteDistribution[Int, Rational]] =
       proportionalCase[Int].arb
 
     checkAll("DiscreteFiniteDistribution",
       EqTests[DiscreteFiniteDistribution[Int, Rational]].eqv
     )
-  }
-
-  def eagerizationPreserves = forAllNoShrink(anyDfd) { dfd =>
-    DiscreteFiniteDistribution.eager(dfd) ==== dfd
-  }
-
-  private def nonNegNum[N: Numeric:Choose]: Gen[N] = frequency(1 -> zero[N], 99 -> posNum[N])
-
-  private def rational(numerator: Gen[Long]): Gen[Rational] = (numerator, posNum[Long]).mapN(Rational.apply)
-
-  private val posRational: Gen[Rational] = rational(posNum[Long])
-  private val nonNegRational: Gen[Rational] = rational(nonNegNum[Long])
-  private def between0and1[N: Numeric:Choose]: Gen[N] = chooseNum(zero[N], one[N])
-
-  private def listOfNWithNonZero[A: Numeric](n: Int, genA: Gen[A]): Gen[List[A]] =
-    listOfN(n, genA) `suchThat` { _.exists(_ =!= zero[A]) }
-
-  private def nonEmptyListOfDistinct[A](genA: Gen[A]): Gen[List[A]] =
-    // todo to use analogue of `.distinct` based on `cats.Eq`.
-    nonEmptyListOf(genA) `map` (_.distinct)
-
-  private def normalize(l: List[Rational]) = {
-    val sum = l.sum
-    l `map` (_ / sum)
   }
 
   // --- Particular DFD generation and checks cases ---
@@ -159,6 +126,10 @@ object DFDSpec extends Specification with ScalaCheck with Discipline { def is = 
       matches.reduce(_ and _)
     }
   )
+
+  def eagerizationPreserves = forAllNoShrink(anyDfd) { dfd =>
+    DiscreteFiniteDistribution.eager(dfd) ==== dfd
+  }
 
   // --- Particular distribution cases ---
 
@@ -264,5 +235,40 @@ object DFDSpec extends Specification with ScalaCheck with Discipline { def is = 
 
     private def pmfSumIsOne(d: Distr)(implicit P: Numeric[P]) =
       d.support.toList.map(d.pmf).sum ==== one[P]
+  }
+
+  // --- General purpose utility functions and values ---
+
+  implicit val cogenDfdIR: Cogen[DiscreteFiniteDistribution[Int, Rational]] = implicitly
+
+  lazy val anyDfd: Gen[DiscreteFiniteDistribution[Int, Rational]] = Gen.oneOf(
+    normalizedMapCase[Int].genD,
+    supportAndPmfCase[Int].genD,
+    proportionalCase[Int].genD,
+    unnormalizedCase[Int].genD,
+    // no bernouli case until it's for booleans
+    binomialCase.genD,
+    hypergeometricCase.genD,
+    uniformCase[Int].genD,
+  )
+
+  private def nonNegNum[N: Numeric:Choose]: Gen[N] = frequency(1 -> zero[N], 99 -> posNum[N])
+
+  private def rational(numerator: Gen[Long]): Gen[Rational] = (numerator, posNum[Long]).mapN(Rational.apply)
+
+  private val posRational: Gen[Rational] = rational(posNum[Long])
+  private val nonNegRational: Gen[Rational] = rational(nonNegNum[Long])
+  private def between0and1[N: Numeric:Choose]: Gen[N] = chooseNum(zero[N], one[N])
+
+  private def listOfNWithNonZero[A: Numeric](n: Int, genA: Gen[A]): Gen[List[A]] =
+    listOfN(n, genA) `suchThat` { _.exists(_ =!= zero[A]) }
+
+  private def nonEmptyListOfDistinct[A](genA: Gen[A]): Gen[List[A]] =
+  // todo to use analogue of `.distinct` based on `cats.Eq`.
+    nonEmptyListOf(genA) `map` (_.distinct)
+
+  private def normalize(l: List[Rational]): List[Rational] = {
+    val sum = l.sum
+    l `map` (_ / sum)
   }
 }
