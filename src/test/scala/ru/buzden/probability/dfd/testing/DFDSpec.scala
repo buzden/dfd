@@ -12,8 +12,8 @@ import org.scalacheck.{Arbitrary, Cogen, Gen}
 import org.specs2.matcher.MatchResult
 import org.specs2.{ScalaCheck, Specification}
 import org.typelevel.discipline.specs2.Discipline
+import ru.buzden.probability.dfd.DiscreteFiniteDistribution._
 import ru.buzden.probability.dfd._
-import ru.buzden.probability.dfd.DiscreteFiniteDistribution
 import ru.buzden.util.numeric.syntax.{one, zero}
 import spire.math.{Rational, SafeLong}
 
@@ -85,14 +85,14 @@ object DFDSpec extends Specification with ScalaCheck with Discipline { def is = 
   def proportionalCase[A: Arbitrary] =
     proportionalLike[A, Int](
       "proportional",
-      DiscreteFiniteDistribution.proportional,
+      proportional,
       nonNegNum[Int],
       Rational(_, _))
 
   def unnormalizedCase[A: Arbitrary] =
     proportionalLike[A, Rational](
       "unnormalized",
-      DiscreteFiniteDistribution.unnormalized,
+      unnormalized,
       nonNegRational,
       _ / _)
 
@@ -124,7 +124,7 @@ object DFDSpec extends Specification with ScalaCheck with Discipline { def is = 
 
   def eagerizationPreserves[A](implicit arbD: Arbitrary[DiscreteFiniteDistribution[A, Rational]]) =
     forAllNoShrink { dfd: DiscreteFiniteDistribution[A, Rational] =>
-      DiscreteFiniteDistribution.eager(dfd) ==== dfd
+      eager(dfd) ==== dfd
     }
 
   // --- Particular distribution cases ---
@@ -132,7 +132,7 @@ object DFDSpec extends Specification with ScalaCheck with Discipline { def is = 
   lazy val bernouliCase = TestCase[Boolean, Rational, Rational](
     caseName = "bernouli",
     distrParameters = between0and1[Rational],
-    createDfd = DiscreteFiniteDistribution.bernouli,
+    createDfd = bernouli,
     checkSupport = (_, support) => support must not be empty,
     checkProbabilities = { (p, d) =>
       (d.pmf(true) ==== p) and (d.pmf(false) ==== (1 - p))
@@ -145,7 +145,7 @@ object DFDSpec extends Specification with ScalaCheck with Discipline { def is = 
   lazy val binomialCase = TestCase[Int, Rational, (Int, Rational)](
     caseName = "binomial",
     distrParameters = Apply[Gen].product(nonNegNum[Int], between0and1[Rational]),
-    createDfd = (DiscreteFiniteDistribution.binomial[Rational, Int] _).tupled,
+    createDfd = (binomial[Rational, Int] _).tupled,
     checkSupport = (np, support) => support ==== (0 to np._1).toSet,
     checkProbabilities = { case ((n, p), d) =>
       def bin(k: Int): Rational = binomialCoef(n, k) * p.pow(k) * (one[Rational] - p).pow(n - k)
@@ -161,7 +161,7 @@ object DFDSpec extends Specification with ScalaCheck with Discipline { def is = 
       kk <- chooseNum(0, nn)
       n <- chooseNum(0, nn)
     } yield (nn, kk, n),
-    createDfd = { case (nn, kk, n) => DiscreteFiniteDistribution.hypergeometric(nn, kk, n) },
+    createDfd = { case (nn, kk, n) => hypergeometric(nn, kk, n) },
     checkSupport = { case ((nn, kk, n), support) =>
       support ==== hypergeometricSupport(nn, kk, n).toSet
     },
@@ -177,7 +177,7 @@ object DFDSpec extends Specification with ScalaCheck with Discipline { def is = 
     distrParameters =
       nonEmptyListOfDistinct(arbitrary[A]) `map` { SortedSet[A](_:_*) } `map` { NonEmptySet.fromSetUnsafe },
 
-    createDfd = s => Some(DiscreteFiniteDistribution.uniform(s)),
+    createDfd = s => Some(uniform(s)),
     checkSupport = (s, support) => support ==== s.toSortedSet,
 
     checkProbabilities = { (s, d) =>
@@ -186,10 +186,8 @@ object DFDSpec extends Specification with ScalaCheck with Discipline { def is = 
     }
   )
 
-  def bernouliOfHalf = {
-    import DiscreteFiniteDistribution._
+  def bernouliOfHalf =
     bernouli(Rational(1, 2)) ==== Some(uniform(NonEmptySet.of(true, false)))
-  }
 
   def binomialOfOne =
     pending("This test requires either functor instance on DFD or bernouli be not only boolean")
