@@ -3,7 +3,7 @@ package ru.buzden.probability.dfd
 import cats.syntax.apply._
 import cats.syntax.eq._
 import org.scalacheck.Arbitrary.arbitrary
-import org.scalacheck.{Cogen, Gen}
+import org.scalacheck.{Arbitrary, Cogen, Gen}
 import org.scalacheck.Gen._
 import org.scalacheck.cats.implicits._
 import org.specs2.matcher.describe.Diffable
@@ -56,7 +56,7 @@ package object testing {
     override def toDouble(x: Rational): Double = x.toDouble
   }
 
-  implicit val safeLongIsNumeric: Numeric[SafeLong] = new Integral[SafeLong] {
+  implicit val safeLongIsIntegral: Integral[SafeLong] = new Integral[SafeLong] {
     override def plus(x: SafeLong, y: SafeLong): SafeLong = x + y
     override def minus(x: SafeLong, y: SafeLong): SafeLong = x - y
 
@@ -77,11 +77,18 @@ package object testing {
     override def toDouble(x: SafeLong): Double = x.toDouble
   }
 
+  implicit val arbSafeLong: Arbitrary[SafeLong] = Arbitrary(Gen.oneOf(
+    arbitrary[Long].map(SafeLong(_)),
+    arbitrary[BigInt].map(SafeLong(_)),
+  ))
+  implicit val cogenSafeLong: Cogen[SafeLong] = Cogen.cogenLong.contramap(_.toLong)
+
   implicit def cogen4dfd[A: Cogen:Ordering, P: Cogen]: Cogen[DiscreteFiniteDistribution[A, P]] =
     Cogen.cogenVector[(A, P)].contramap { dfd =>
       dfd.support.toVector.sorted.map(a => (a, dfd.pmf(a)))
     }
   implicit val cogenDfdIR: Cogen[DiscreteFiniteDistribution[Int, Rational]] = implicitly
+  implicit val cogenDfdSlR: Cogen[DiscreteFiniteDistribution[SafeLong, Rational]] = implicitly
 
   implicit val chooseBigInt: Choose[BigInt] = (min, max) => {
     if (min > max) throw new Choose.IllegalBoundsError(min, max) // they originally throw :-(
