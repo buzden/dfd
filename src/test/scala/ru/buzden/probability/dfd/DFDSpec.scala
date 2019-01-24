@@ -3,7 +3,6 @@ package ru.buzden.probability.dfd
 import cats.Apply
 import cats.data.NonEmptySet
 import cats.kernel.laws.discipline.EqTests
-import cats.syntax.apply._
 import cats.syntax.eq._
 import org.scalacheck.Arbitrary.arbitrary
 import org.scalacheck.Gen._
@@ -13,6 +12,7 @@ import org.scalacheck.{Arbitrary, Cogen, Gen}
 import org.specs2.matcher.MatchResult
 import org.specs2.{ScalaCheck, Specification}
 import org.typelevel.discipline.specs2.Discipline
+import ru.buzden.probability.dfd.genUtil._
 import ru.buzden.probability.dfd.testInstances._
 import ru.buzden.util.numeric.syntax._
 import spire.math.{Rational, SafeLong}
@@ -234,8 +234,6 @@ object DFDSpec extends Specification with ScalaCheck with Discipline { def is = 
 
   // --- General purpose utility functions and values ---
 
-  implicit val cogenDfdIR: Cogen[DiscreteFiniteDistribution[Int, Rational]] = implicitly
-
   implicit lazy val arbDfdIR: Arbitrary[DiscreteFiniteDistribution[Int, Rational]] = Arbitrary(Gen.oneOf(
     normalizedMapCase[Int].genD,
     supportAndPmfCase[Int].genD,
@@ -246,21 +244,6 @@ object DFDSpec extends Specification with ScalaCheck with Discipline { def is = 
     hypergeometricCase.genD,
     uniformCase[Int].genD,
   ))
-
-  private def nonNegNum[N: Numeric:Choose]: Gen[N] = frequency(1 -> zero[N], 99 -> posNum[N])
-
-  private def rational(numerator: Gen[Long]): Gen[Rational] = (numerator, posNum[Long]).mapN(Rational.apply)
-
-  private val posRational: Gen[Rational] = rational(posNum[Long])
-  private val nonNegRational: Gen[Rational] = rational(nonNegNum[Long])
-  private def between0and1[N: Numeric:Choose]: Gen[N] = chooseNum(zero[N], one[N])
-
-  private def listOfNWithNonZero[A: Numeric](n: Int, genA: Gen[A]): Gen[List[A]] =
-    listOfN(n, genA) `suchThat` { _.exists(_ =!= zero[A]) }
-
-  private def nonEmptyListOfDistinct[A](genA: Gen[A]): Gen[List[A]] =
-  // todo to use analogue of `.distinct` based on `cats.Eq`.
-    nonEmptyListOf(genA) `map` (_.distinct)
 
   private def normalize(l: List[Rational]): List[Rational] = {
     val sum = l.sum

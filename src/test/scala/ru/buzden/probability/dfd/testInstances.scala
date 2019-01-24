@@ -51,6 +51,7 @@ object testInstances {
     Cogen.cogenVector[(A, P)].contramap { dfd =>
       dfd.support.toVector.sorted.map(a => (a, dfd.pmf(a)))
     }
+  implicit val cogenDfdIR: Cogen[DiscreteFiniteDistribution[Int, Rational]] = implicitly
 
   implicit val chooseBigInt: Choose[BigInt] = (min, max) => {
     if (min > max) throw new Choose.IllegalBoundsError(min, max) // they originally throw :-(
