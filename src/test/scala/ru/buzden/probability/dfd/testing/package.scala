@@ -1,12 +1,42 @@
 package ru.buzden.probability.dfd
 
+import cats.syntax.apply._
+import cats.syntax.eq._
 import org.scalacheck.Arbitrary.arbitrary
-import org.scalacheck.Gen.Choose
 import org.scalacheck.{Cogen, Gen}
+import org.scalacheck.Gen._
+import org.scalacheck.cats.implicits._
 import org.specs2.matcher.describe.Diffable
+import ru.buzden.util.numeric.syntax.{one, zero}
 import spire.math.{Rational, SafeLong}
 
-object testInstances {
+package object testing {
+  // --- Gen-related utility functions ---
+
+  def nonNegNum[N: Numeric:Choose]: Gen[N] = frequency(1 -> zero[N], 99 -> posNum[N])
+
+  def rational(numerator: Gen[Long]): Gen[Rational] = (numerator, posNum[Long]).mapN(Rational.apply)
+
+  val posRational: Gen[Rational] = rational(posNum[Long])
+  val nonNegRational: Gen[Rational] = rational(nonNegNum[Long])
+  def between0and1[N: Numeric:Choose]: Gen[N] = chooseNum(zero[N], one[N])
+
+  def listOfNWithNonZero[A: Numeric](n: Int, genA: Gen[A]): Gen[List[A]] =
+    listOfN(n, genA) `suchThat` { _.exists(_ =!= zero[A]) }
+
+  def nonEmptyListOfDistinct[A](genA: Gen[A]): Gen[List[A]] =
+  // todo to use analogue of `.distinct` based on `cats.Eq`.
+    nonEmptyListOf(genA) `map` (_.distinct)
+
+  // --- Other utility functions ---
+
+  def normalize(l: List[Rational]): List[Rational] = {
+    val sum = l.sum
+    l `map` (_ / sum)
+  }
+
+  // --- Instances for testing ---
+
   implicit val rationalIsProbability: Probability[Rational] = new Fractional[Rational] {
     override def plus(x: Rational, y: Rational): Rational = x + y
     override def minus(x: Rational, y: Rational): Rational = x - y

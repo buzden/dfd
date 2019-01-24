@@ -1,20 +1,20 @@
-package ru.buzden.probability.dfd
+package ru.buzden.probability.dfd.testing
 
 import cats.Apply
 import cats.data.NonEmptySet
 import cats.kernel.laws.discipline.EqTests
 import cats.syntax.eq._
 import org.scalacheck.Arbitrary.arbitrary
-import org.scalacheck.Gen._
+import org.scalacheck.Gen.chooseNum
 import org.scalacheck.Prop.forAllNoShrink
 import org.scalacheck.cats.implicits._
 import org.scalacheck.{Arbitrary, Cogen, Gen}
 import org.specs2.matcher.MatchResult
 import org.specs2.{ScalaCheck, Specification}
 import org.typelevel.discipline.specs2.Discipline
-import ru.buzden.probability.dfd.genUtil._
-import ru.buzden.probability.dfd.testInstances._
-import ru.buzden.util.numeric.syntax._
+import ru.buzden.probability.dfd._
+import ru.buzden.probability.dfd.DiscreteFiniteDistribution
+import ru.buzden.util.numeric.syntax.{one, zero}
 import spire.math.{Rational, SafeLong}
 
 import scala.collection.immutable.SortedSet
@@ -232,7 +232,7 @@ object DFDSpec extends Specification with ScalaCheck with Discipline { def is = 
       d.support.toList.map(d.pmf).sum ==== one[P]
   }
 
-  // --- General purpose utility functions and values ---
+  // --- Putting all cases together ---
 
   implicit lazy val arbDfdIR: Arbitrary[DiscreteFiniteDistribution[Int, Rational]] = Arbitrary(Gen.oneOf(
     normalizedMapCase[Int].genD,
@@ -244,9 +244,4 @@ object DFDSpec extends Specification with ScalaCheck with Discipline { def is = 
     hypergeometricCase.genD,
     uniformCase[Int].genD,
   ))
-
-  private def normalize(l: List[Rational]): List[Rational] = {
-    val sum = l.sum
-    l `map` (_ / sum)
-  }
 }
