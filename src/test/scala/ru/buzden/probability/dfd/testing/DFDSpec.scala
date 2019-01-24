@@ -43,7 +43,7 @@ object DFDSpec extends Specification with ScalaCheck with Discipline { def is = 
   // --- Thing-in-ifself-like checks ---
 
   def eqLaws = checkAll("DiscreteFiniteDistribution",
-    EqTests[DiscreteFiniteDistribution[Int, Rational]].eqv
+    EqTests[DiscreteFiniteDistribution[SafeLong, Rational]].eqv
   )
 
   // --- Particular DFD generation and checks cases ---
@@ -141,11 +141,11 @@ object DFDSpec extends Specification with ScalaCheck with Discipline { def is = 
   private def factorial(n: Int): SafeLong = (1 to n).map { SafeLong(_) }.product
   private def binomialCoef(n: Int, k: Int): SafeLong = factorial(n) / (factorial(n - k) * factorial(k))
 
-  lazy val binomialCase = TestCase[Int, Rational, (Int, Rational)](
+  lazy val binomialCase = TestCase[SafeLong, Rational, (Int, Rational)](
     caseName = "binomial",
     distrParameters = Apply[Gen].product(nonNegNum[Int], between0and1[Rational]),
-    createDfd = (binomial[Rational, Int] _).tupled,
-    checkSupport = (np, support) => support ==== (0 to np._1).toSet,
+    createDfd = { case (n, p) => binomial(SafeLong(n), p) },
+    checkSupport = (np, support) => support ==== (0 to np._1).toSet.map { SafeLong(_:Int) },
     checkProbabilities = { case ((n, p), d) =>
       def bin(k: Int): Rational = binomialCoef(n, k) * p.pow(k) * (one[Rational] - p).pow(n - k)
       (0 to n) `map` { k => d.pmf(k) ==== bin(k) } `reduce` (_ and _)
@@ -153,16 +153,16 @@ object DFDSpec extends Specification with ScalaCheck with Discipline { def is = 
   )
 
   private def hypergeometricSupport(nn: Int, kk: Int, n: Int): Range = (0 `max` n + kk - nn) to (nn `min` kk)
-  lazy val hypergeometricCase = TestCase[Int, Rational, (Int, Int, Int)](
+  lazy val hypergeometricCase = TestCase[SafeLong, Rational, (Int, Int, Int)](
     caseName = "hypergeometric",
     distrParameters = for {
       nn <- nonNegNum[Int]
       kk <- chooseNum(0, nn)
       n <- chooseNum(0, nn)
     } yield (nn, kk, n),
-    createDfd = { case (nn, kk, n) => hypergeometric(nn, kk, n) },
+    createDfd = { case (nn, kk, n) => hypergeometric(SafeLong(nn), SafeLong(kk), SafeLong(n)) },
     checkSupport = { case ((nn, kk, n), support) =>
-      support ==== hypergeometricSupport(nn, kk, n).toSet
+      support ==== hypergeometricSupport(nn, kk, n).toSet.map { SafeLong(_:Int) }
     },
     checkProbabilities = { case ((nn, kk, n), d) =>
       def p(k: Int): Rational = binomialCoef(kk, k) * binomialCoef(nn - kk, n - k) / binomialCoef(nn, n)
@@ -234,14 +234,14 @@ object DFDSpec extends Specification with ScalaCheck with Discipline { def is = 
 
   // --- Putting all cases together ---
 
-  implicit lazy val arbDfdIR: Arbitrary[DiscreteFiniteDistribution[Int, Rational]] = Arbitrary(Gen.oneOf(
-    normalizedMapCase[Int].genD,
-    supportAndPmfCase[Int].genD,
-    proportionalCase[Int].genD,
-    unnormalizedCase[Int].genD,
+  implicit lazy val arbDfdIR: Arbitrary[DiscreteFiniteDistribution[SafeLong, Rational]] = Arbitrary(Gen.oneOf(
+    normalizedMapCase[SafeLong].genD,
+    supportAndPmfCase[SafeLong].genD,
+    proportionalCase[SafeLong].genD,
+    unnormalizedCase[SafeLong].genD,
     // no bernouli case until it's for booleans
     binomialCase.genD,
     hypergeometricCase.genD,
-    uniformCase[Int].genD,
+    uniformCase[SafeLong].genD,
   ))
 }
