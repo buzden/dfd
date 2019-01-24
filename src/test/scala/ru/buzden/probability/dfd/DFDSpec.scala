@@ -42,14 +42,9 @@ object DFDSpec extends Specification with ScalaCheck with Discipline { def is = 
 
   // --- Thing-in-ifself-like checks ---
 
-  def eqLaws = {
-    implicit val arbitraryDfdIR: Arbitrary[DiscreteFiniteDistribution[Int, Rational]] =
-      proportionalCase[Int].arb
-
-    checkAll("DiscreteFiniteDistribution",
-      EqTests[DiscreteFiniteDistribution[Int, Rational]].eqv
-    )
-  }
+  def eqLaws = checkAll("DiscreteFiniteDistribution",
+    EqTests[DiscreteFiniteDistribution[Int, Rational]].eqv
+  )
 
   // --- Particular DFD generation and checks cases ---
 
@@ -211,7 +206,6 @@ object DFDSpec extends Specification with ScalaCheck with Discipline { def is = 
     lazy val gen: Gen[(DistrParameters, Distr)] =
       genopt `suchThat` (_._2.isDefined) `map` { case (i, o) => (i, o.get) }
     lazy val genD: Gen[Distr] = gen.map(_._2)
-    lazy val arb: Arbitrary[Distr] = Arbitrary(genD)
 
     def fragments(implicit A: Arbitrary[A], P: Numeric[P]) = s2"""
       $caseName
@@ -241,6 +235,7 @@ object DFDSpec extends Specification with ScalaCheck with Discipline { def is = 
 
   implicit val cogenDfdIR: Cogen[DiscreteFiniteDistribution[Int, Rational]] = implicitly
 
+  implicit lazy val arbDfdIR: Arbitrary[DiscreteFiniteDistribution[Int, Rational]] = Arbitrary(anyDfd)
   lazy val anyDfd: Gen[DiscreteFiniteDistribution[Int, Rational]] = Gen.oneOf(
     normalizedMapCase[Int].genD,
     supportAndPmfCase[Int].genD,
