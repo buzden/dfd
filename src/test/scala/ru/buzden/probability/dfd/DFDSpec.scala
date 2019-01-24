@@ -40,6 +40,16 @@ object DFDSpec extends Specification with ScalaCheck with Discipline { def is = 
   """
 
   implicit val cogenDfdIR: Cogen[DiscreteFiniteDistribution[Int, Rational]] = implicitly
+  lazy val anyDfd: Gen[DiscreteFiniteDistribution[Int, Rational]] = Gen.oneOf(
+    normalizedMapCase[Int].genD,
+    supportAndPmfCase[Int].genD,
+    proportionalCase[Int].genD,
+    unnormalizedCase[Int].genD,
+    // no bernouli case until it's for booleans
+    binomialCase.genD,
+    hypergeometricCase.genD,
+    uniformCase[Int].genD,
+  )
 
   private def eqLaws = {
     implicit val arbitraryDfdIR: Arbitrary[DiscreteFiniteDistribution[Int, Rational]] =
