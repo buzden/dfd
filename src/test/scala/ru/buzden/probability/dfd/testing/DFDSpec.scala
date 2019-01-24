@@ -35,7 +35,7 @@ object DFDSpec extends Specification with ScalaCheck with Discipline { def is = 
     relation between different distributions
       bernouli(1/2)  == uniform for booleans                                 $bernouliOfHalf
       binomial(1, p) ~= bernouli(p)                                          $binomialOfOne
-    eagerization preserves support and probabilities                         ${eagerizationPreserves[Int]}
+    eagerization preserves support and probabilities                         $eagerizationPreserves
   laws of typeclass instances
     $eqLaws
   """
