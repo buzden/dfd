@@ -36,7 +36,7 @@ object DFDSpec extends Specification with ScalaCheck with Discipline { def is = 
   relation between different distributions
     bernouli(1/2)  == uniform for booleans                                   $bernouliOfHalf
     binomial(1, p) ~= bernouli(p)
-  eagerization preserves support and probabilities
+  eagerization preserves support and probabilities                           $eagerizationPreserves
   """
 
   implicit val cogenDfdIR: Cogen[DiscreteFiniteDistribution[Int, Rational]] = implicitly
@@ -58,6 +58,10 @@ object DFDSpec extends Specification with ScalaCheck with Discipline { def is = 
     checkAll("DiscreteFiniteDistribution",
       EqTests[DiscreteFiniteDistribution[Int, Rational]].eqv
     )
+  }
+
+  def eagerizationPreserves = forAllNoShrink(anyDfd) { dfd =>
+    DiscreteFiniteDistribution.eager(dfd) ==== dfd
   }
 
   private def nonNegNum[N: Numeric:Choose]: Gen[N] = frequency(1 -> zero[N], 99 -> posNum[N])
