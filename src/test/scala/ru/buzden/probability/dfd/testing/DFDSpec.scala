@@ -140,7 +140,7 @@ object DFDSpec extends Specification with ScalaCheck with Discipline { def is = 
   )
 
   private def factorial(n: Int): SafeLong = (1 to n).map { SafeLong(_) }.product
-  private def binomial(n: Int, k: Int): SafeLong = factorial(n) / (factorial(n - k) * factorial(k))
+  private def binomialCoef(n: Int, k: Int): SafeLong = factorial(n) / (factorial(n - k) * factorial(k))
 
   lazy val binomialCase = TestCase[Int, Rational, (Int, Rational)](
     caseName = "binomial",
@@ -148,7 +148,7 @@ object DFDSpec extends Specification with ScalaCheck with Discipline { def is = 
     createDfd = (DiscreteFiniteDistribution.binomial[Rational, Int] _).tupled,
     checkSupport = (np, support) => support ==== (0 to np._1).toSet,
     checkProbabilities = { case ((n, p), d) =>
-      def bin(k: Int): Rational = binomial(n, k) * p.pow(k) * (one[Rational] - p).pow(n - k)
+      def bin(k: Int): Rational = binomialCoef(n, k) * p.pow(k) * (one[Rational] - p).pow(n - k)
       (0 to n) `map` { k => d.pmf(k) ==== bin(k) } `reduce` (_ and _)
     }
   )
@@ -166,7 +166,7 @@ object DFDSpec extends Specification with ScalaCheck with Discipline { def is = 
       support ==== hypergeometricSupport(nn, kk, n).toSet
     },
     checkProbabilities = { case ((nn, kk, n), d) =>
-      def p(k: Int): Rational = binomial(kk, k) * binomial(nn - kk, n - k) / binomial(nn, n)
+      def p(k: Int): Rational = binomialCoef(kk, k) * binomialCoef(nn - kk, n - k) / binomialCoef(nn, n)
       hypergeometricSupport(nn, kk, n) `map` { k => d.pmf(k) ==== p(k) } `reduce` (_ and _)
     }
   )
