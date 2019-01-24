@@ -141,11 +141,15 @@ object DFDSpec extends Specification with ScalaCheck with Discipline { def is = 
   private def factorial(n: Int): SafeLong = (1 to n).map { SafeLong(_) }.product
   private def binomialCoef(n: Int, k: Int): SafeLong = factorial(n) / (factorial(n - k) * factorial(k))
 
+  private def binomialSupport(n: Int, p: Rational): Set[Int] =
+    if (p === zero[Rational]) Set(0)
+    else if (p === one[Rational]) Set(n)
+    else (0 to n).toSet
   lazy val binomialCase = TestCase[SafeLong, Rational, (Int, Rational)](
     caseName = "binomial",
     distrParameters = Apply[Gen].product(nonNegNum[Int], between0and1[Rational]),
     createDfd = { case (n, p) => binomial(SafeLong(n), p) },
-    checkSupport = (np, support) => support ==== (0 to np._1).toSet.map { SafeLong(_:Int) },
+    checkSupport = (np, support) => support ==== binomialSupport(np._1, np._2).map { SafeLong(_:Int) },
     checkProbabilities = { case ((n, p), d) =>
       def bin(k: Int): Rational = binomialCoef(n, k) * p.pow(k) * (one[Rational] - p).pow(n - k)
       (0 to n) `map` { k => d.pmf(k) ==== bin(k) } `reduce` (_ and _)
