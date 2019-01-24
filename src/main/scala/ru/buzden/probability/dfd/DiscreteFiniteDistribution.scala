@@ -73,13 +73,13 @@ object DiscreteFiniteDistribution {
 
   def binomial[P: Probability, N: Integral](n: N, p: P)(implicit ntop: N => P): Option[DiscreteFiniteDistribution[N, P]] =
     if (p >= zero[P] && p <= one[P]) DiscreteFiniteDistribution((one[N] to n).toSet) { k =>
-      p.pow(k) * (one[P] - p).pow(n - k) * n.combinationsIntegral(k)
+      p.pow(k) * (one[P] - p).pow(n - k) * n.combinationsI(k)
     } else None
 
   def hypergeometric[P: Probability, N: Integral](N: N, K: N, n: N)(implicit ntop: N => P): Option[DiscreteFiniteDistribution[N, P]] =
     if (N >= zero[N] && K >= zero[N] && K <= N && n >= zero[N] && n <= N)
       DiscreteFiniteDistribution(((zero[N] max n + K - N) `to` (n min K)).toSet) { k =>
-        K.combinationsIntegral(k) * (N - K).combinationsIntegral(n - k) / N.combinationsIntegral(k)
+        K.combinationsI(k) * (N - K).combinationsI(n - k) / N.combinationsI(k)
       }
     else None
 

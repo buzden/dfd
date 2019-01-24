@@ -47,8 +47,7 @@ object syntax {
       else if (k > n) zero
       else div((k to n).product, (k min (n - k)).factorial)
 
-    def combinationsIntegral(k: N)(implicit N: Integral[N]): N = c(k)(N.quot)
-
-    def combinationsFractional(k: N)(implicit N: Fractional[N]): N = c(k)(N.div)
+    def combinationsI(k: N)(implicit N: Integral[N]): N = c(k)(N.quot)
+    def combinationsF(k: N)(implicit N: Fractional[N]): N = c(k)(N.div)
   }
 }
