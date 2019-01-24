@@ -20,7 +20,7 @@ object syntax {
       if (n <= till) Iterator.iterate(n)(_ + one).takeWhile(_ <= till)
       else Iterator.empty
 
-    def factorial(implicit N: Numeric[N]): N = (one to n).reduceOption(_ * _).getOrElse(one)
+    def factorial(implicit N: Numeric[N]): N = (one to n).product
 
     def sqr(implicit N: Numeric[N]): N = n * n
   }
