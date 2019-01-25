@@ -156,7 +156,7 @@ object DFDSpec extends Specification with ScalaCheck with Discipline { def is = 
     }
   )
 
-  private def hypergeometricSupport(nn: Int, kk: Int, n: Int): Range = (0 `max` n + kk - nn) to (nn `min` kk)
+  private def hypergeometricSupport(nn: Int, kk: Int, n: Int): Range = (0 `max` n + kk - nn) to (n `min` kk)
   lazy val hypergeometricCase = TestCase[SafeLong, Rational, (Int, Int, Int)](
     caseName = "hypergeometric",
     distrParameters = for {
