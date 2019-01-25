@@ -176,13 +176,10 @@ object DFDSpec extends Specification with ScalaCheck with Discipline { def is = 
 
   def uniformCase[A: Arbitrary:Ordering] = TestCase[A, Rational, NonEmptySet[A]](
     caseName = "uniform",
-
     distrParameters =
       nonEmptyListOfDistinct(arbitrary[A]) `map` { SortedSet[A](_:_*) } `map` { NonEmptySet.fromSetUnsafe },
-
     createDfd = s => Some(uniform(s)),
     checkSupport = (s, support) => support ==== s.toSortedSet,
-
     checkProbabilities = { (s, d) =>
       val expectedP = Rational(1, s.length)
       d.support.toList `map` (d.pmf(_) ==== expectedP) `reduce` (_ and _)
