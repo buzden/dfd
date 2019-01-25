@@ -139,7 +139,7 @@ object DFDSpec extends Specification with ScalaCheck with Discipline { def is = 
   )
 
   private def factorial(n: Int): SafeLong = (1 to n).map { SafeLong(_) }.product
-  private def binomialCoef(n: Int, k: Int): SafeLong = factorial(n) / (factorial(n - k) * factorial(k))
+  private def binomialCoef(n: Int, k: Int): Rational = Rational(factorial(n), factorial(n - k) * factorial(k))
 
   private def binomialSupport(n: Int, p: Rational): Set[Int] =
     if (p === zero[Rational]) Set(0)
