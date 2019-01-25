@@ -35,6 +35,7 @@ object DFDSpec extends Specification with ScalaCheck with Discipline { def is = 
     relation between different distributions
       bernouli(1/2)  == uniform for booleans                                 $bernouliOfHalf
       binomial(1, p) ~= bernouli(p)                                          $binomialOfOne
+      hypergeometric(N, K, 1) == bernouli(K/N)                               $hypergeometricWithN1
     eagerization preserves support and probabilities                         $eagerizationPreserves
   laws of typeclass instances
     $eqLaws
@@ -190,6 +191,9 @@ object DFDSpec extends Specification with ScalaCheck with Discipline { def is = 
     bernouli(Rational(1, 2)) ==== Some(uniform(NonEmptySet.of(true, false)))
 
   def binomialOfOne =
+    pending("This test requires either functor instance on DFD or bernouli be not only boolean")
+
+  def hypergeometricWithN1 =
     pending("This test requires either functor instance on DFD or bernouli be not only boolean")
 
   // --- Auxiliary classes for organization of test cases ---
