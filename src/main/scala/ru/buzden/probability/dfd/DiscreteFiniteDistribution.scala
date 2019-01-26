@@ -65,22 +65,22 @@ object DiscreteFiniteDistribution {
     check[E]("Sum of all probabilities is not equal to one") { pmf.values.sum === one } *>
     MapDFD(pmf `filter` { case (_, p) => p =!= zero } `withDefaultValue` zero).pure[E]
 
-  def apply[A, P: Probability](support: Set[A])(pmf: A => P): Option[DiscreteFiniteDistribution[A, P]] =
-    if (support.forall(pmf(_) >= zero) && (support.toSeq.map(pmf).sum === one))
-      Some(FunctionDFD(pmf, support `filter` { pmf(_) =!= zero })) else None
+  def apply[A, P: Probability, E[_]: Errorable](support: Set[A])(pmf: A => P): E[DiscreteFiniteDistribution[A, P]] =
+    check[E]("A probability value that is <= zero exists") { support.forall(pmf(_) >= zero) } *>
+    check[E]("Sum of all probabilities is not equal to one") { support.toSeq.map(pmf).sum === one } *>
+    FunctionDFD(pmf, support `filter` { pmf(_) =!= zero }).pure[E]
 
-  def proportional[A, P: Probability](p1: (A, Int), rest: (A, Int)*): Option[DiscreteFiniteDistribution[A, P]] = {
+  def proportional[A, P: Probability, E[_]: Errorable](p1: (A, Int), rest: (A, Int)*): E[DiscreteFiniteDistribution[A, P]] = {
     def pairToProb(p: (A, Int)): (A, P) = p.copy(_2 = p._2.asNumeric)
-    unnormalized(pairToProb(p1), rest `map` pairToProb :_*)
+    unnormalized[A, P, E](pairToProb(p1), rest `map` pairToProb :_*)
   }
 
-  def unnormalized[A, P: Probability](p1: (A, P), rest: (A, P)*): Option[DiscreteFiniteDistribution[A, P]] = {
+  def unnormalized[A, P: Probability, E[_]: Errorable](p1: (A, P), rest: (A, P)*): E[DiscreteFiniteDistribution[A, P]] = {
     import ru.buzden.util.numeric.instances.numericAdditiveMonoid
     val ps = p1 :: rest.toList
     val sum = ps.foldMap(_._2)
-    if (sum =!= zero)
-      DiscreteFiniteDistribution[A, P, Option](ps `foldMap` { case (a, p) => Map(a -> p / sum) })
-    else None
+    check[E]("Sum is equal to zero") { sum =!= zero } *>
+    DiscreteFiniteDistribution[A, P, E](ps `foldMap` { case (a, p) => Map(a -> p / sum) })
   }
 
   def eager[A, P](dfd: DiscreteFiniteDistribution[A, P]): DiscreteFiniteDistribution[A, P] = dfd match {
