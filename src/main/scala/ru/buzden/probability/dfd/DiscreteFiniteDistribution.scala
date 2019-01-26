@@ -1,11 +1,14 @@
 package ru.buzden.probability.dfd
 
-import cats.data.NonEmptySet
+import cats.data.{NonEmptyList, NonEmptySet}
 import cats.instances.list._
 import cats.instances.map._
+import cats.syntax.applicative._
+import cats.syntax.applicativeError._
+import cats.syntax.apply._
 import cats.syntax.foldable._
 import cats.syntax.order._
-import cats.{Eq, Order}
+import cats.{Applicative, ApplicativeError, Eq, Order}
 import ru.buzden.util.numeric.syntax._
 
 import scala.Fractional.Implicits._
@@ -23,9 +26,27 @@ sealed trait DiscreteFiniteDistribution[A, P] {
   /** Cumulative distribution function */
   def cdf(implicit O: Order[A], N: Numeric[P]): A => P = a =>
     support.filter(_ <= a).map(pmf).sum
+
+  private[dfd] def pure[F[_]: Applicative]: F[DiscreteFiniteDistribution[A, P]] =
+    this.pure[F]
 }
 
 object DiscreteFiniteDistribution {
+  type Errorable[Container[_]] = ApplicativeError[Container, NonEmptyList[String]]
+  private def check[E[_]: Errorable](failMsg: String)(v: => Boolean): E[Unit] =
+    if (v) NonEmptyList.one(failMsg).raiseError[E, Unit] else ().pure[E]
+
+  implicit def prodolbErrorOption[E]: ApplicativeError[Option, E] = new ApplicativeError[Option, E] {
+    override def raiseError[A](e: E): Option[A] = None
+
+    override def handleErrorWith[A](fa: Option[A])(f: E => Option[A]): Option[A] = fa
+
+    override def pure[A](x: A): Option[A] = Some(x)
+
+    import cats.instances.option._
+    override def ap[A, B](ff: Option[A => B])(fa: Option[A]): Option[B] = Applicative[Option].ap(ff)(fa)
+  }
+
   // --- Discrete finite distributions implementations ---
 
   private final case class MapDFD[A, P](pmf: Map[A, P]) extends DiscreteFiniteDistribution[A, P]  {
@@ -39,9 +60,10 @@ object DiscreteFiniteDistribution {
 
   // --- Discrete finite distribution creation variants ---
 
-  def apply[A, P: Probability](pmf: Map[A, P]): Option[DiscreteFiniteDistribution[A, P]] =
-    if (pmf.values.forall(_ >= zero) && (pmf.values.sum === one))
-      Some(MapDFD(pmf `filter` { case (_, p) => p =!= zero } `withDefaultValue` zero)) else None
+  def apply[A, P: Probability, E[_]: Errorable](pmf: Map[A, P]): E[DiscreteFiniteDistribution[A, P]] =
+    check[E]("A probability value that is <= zero exists") { pmf.values.forall(_ >= zero) } *>
+    check[E]("Sum of all probabilities is not equal to one") { pmf.values.sum === one } *>
+    MapDFD(pmf `filter` { case (_, p) => p =!= zero } `withDefaultValue` zero).pure[E]
 
   def apply[A, P: Probability](support: Set[A])(pmf: A => P): Option[DiscreteFiniteDistribution[A, P]] =
     if (support.forall(pmf(_) >= zero) && (support.toSeq.map(pmf).sum === one))
@@ -57,7 +79,7 @@ object DiscreteFiniteDistribution {
     val ps = p1 :: rest.toList
     val sum = ps.foldMap(_._2)
     if (sum =!= zero)
-      DiscreteFiniteDistribution(ps `foldMap` { case (a, p) => Map(a -> p / sum) })
+      DiscreteFiniteDistribution[A, P, Option](ps `foldMap` { case (a, p) => Map(a -> p / sum) })
     else None
   }
 
