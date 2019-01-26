@@ -71,15 +71,15 @@ object DiscreteFiniteDistribution {
   def bernouli[P: Probability](p: P): Option[DiscreteFiniteDistribution[Boolean, P]] =
     if (p >= zero && p <= one) DiscreteFiniteDistribution(Map(true -> p, false -> (one - p))) else None
 
-  def binomial[P: Probability, N: Integral](n: N, p: P)(implicit ntop: N => P): Option[DiscreteFiniteDistribution[N, P]] =
+  def binomial[N: Integral, P: Probability](n: N, p: P)(implicit ntop: N => P): Option[DiscreteFiniteDistribution[N, P]] =
     if (p >= zero[P] && p <= one[P]) DiscreteFiniteDistribution((one[N] to n).toSet) { k =>
-      p.pow(k) * (one[P] - p).pow(n - k) * n.combinationsIntegral(k)
+      p.pow(k) * (one[P] - p).pow(n - k) * n.combinationsI(k)
     } else None
 
-  def hypergeometric[P: Probability, N: Integral](N: N, K: N, n: N)(implicit ntop: N => P): Option[DiscreteFiniteDistribution[N, P]] =
+  def hypergeometric[N: Integral, P: Probability](N: N, K: N, n: N)(implicit ntop: N => P): Option[DiscreteFiniteDistribution[N, P]] =
     if (N >= zero[N] && K >= zero[N] && K <= N && n >= zero[N] && n <= N)
-      DiscreteFiniteDistribution(((zero[N] max n + K - N) `to` (n min K)).toSet) { k =>
-        K.combinationsIntegral(k) * (N - K).combinationsIntegral(n - k) / N.combinationsIntegral(k)
+      DiscreteFiniteDistribution(((zero[N] `max` n + K - N) `to` (n `min` K)).toSet) { k =>
+        K.combinationsI(k) * (N - K).combinationsI(n - k) / N.combinationsI(k)
       }
     else None
 
