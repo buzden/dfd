@@ -90,20 +90,23 @@ object DiscreteFiniteDistribution {
 
   // --- Examples of discrete finite distributions ---
 
-  def bernouli[P: Probability](p: P): Option[DiscreteFiniteDistribution[Boolean, P]] =
-    if (p >= zero && p <= one) DiscreteFiniteDistribution(Map(true -> p, false -> (one - p))) else None
+  def bernouli[P: Probability, E[_]: Errorable](p: P): E[DiscreteFiniteDistribution[Boolean, P]] =
+    check[E]("Bernouli P parameter must be between 0 and 1") { p >= zero && p <= one } *>
+    DiscreteFiniteDistribution[Boolean, P, E](Map(true -> p, false -> (one - p)))
 
-  def binomial[N: Integral, P: Probability](n: N, p: P)(implicit ntop: N => P): Option[DiscreteFiniteDistribution[N, P]] =
-    if (p >= zero[P] && p <= one[P]) DiscreteFiniteDistribution((zero[N] to n).toSet) { k =>
+  def binomial[N: Integral, P: Probability, E[_]: Errorable](n: N, p: P)(implicit ntop: N => P): E[DiscreteFiniteDistribution[N, P]] =
+    check[E]("Binomial coefficient P must be in [0, 1]") { p >= zero[P] && p <= one[P] } *>
+    DiscreteFiniteDistribution[N, P, E]((zero[N] to n).toSet) { k =>
       p.pow(k) * (one[P] - p).pow(n - k) * n.combinationsI(k)
-    } else None
+    }
 
-  def hypergeometric[N: Integral, P: Probability](N: N, K: N, n: N)(implicit ntop: N => P): Option[DiscreteFiniteDistribution[N, P]] =
-    if (N >= zero[N] && K >= zero[N] && K <= N && n >= zero[N] && n <= N)
-      DiscreteFiniteDistribution(((zero[N] `max` n + K - N) `to` (n `min` K)).toSet) { k =>
-        ntop(K.combinationsI(k) * (N - K).combinationsI(n - k)) / ntop(N.combinationsI(n))
-      }
-    else None
+  def hypergeometric[N: Integral, P: Probability, E[_]: Errorable](N: N, K: N, n: N)(implicit ntop: N => P): E[DiscreteFiniteDistribution[N, P]] =
+    check[E]("N must be non-negative") { N >= zero[N] } *>
+    check[E]("K must lie between 0 and N") { K >= zero[N] && K <= N } *>
+    check[E]("n must lie between 0 and N") { n >= zero[N] && n <= N } *>
+    DiscreteFiniteDistribution[N, P, E](((zero[N] `max` n + K - N) `to` (n `min` K)).toSet) { k =>
+      ntop(K.combinationsI(k) * (N - K).combinationsI(n - k)) / ntop(N.combinationsI(n))
+    }
 
   def uniform[A, P: Probability](support: NonEmptySet[A]): DiscreteFiniteDistribution[A, P] = {
     val p = one / support.length.asNumeric
