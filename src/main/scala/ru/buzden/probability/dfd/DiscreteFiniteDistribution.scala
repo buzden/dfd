@@ -67,7 +67,7 @@ object DiscreteFiniteDistribution {
     import ru.buzden.util.numeric.instances.numericAdditiveMonoid
     val ps = p1 :: rest.toList
     val sum = ps.foldMap(_._2)
-    check[E]("Sum is equal to zero") { sum =!= zero } *>
+    check[E]("Sum of probabilities is equal to zero") { sum =!= zero } *>
     DiscreteFiniteDistribution[A, P, E](ps `foldMap` { case (a, p) => Map(a -> p / sum) })
   }
 
