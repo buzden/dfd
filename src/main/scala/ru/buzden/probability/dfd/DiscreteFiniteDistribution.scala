@@ -36,17 +36,6 @@ object DiscreteFiniteDistribution {
   private def check[E[_]: Errorable](failMsg: => String)(v: => Boolean): E[Unit] =
     if (v) NonEmptyList.one(failMsg).raiseError[E, Unit] else ().pure[E]
 
-  implicit def prodolbErrorOption[E]: ApplicativeError[Option, E] = new ApplicativeError[Option, E] {
-    override def raiseError[A](e: E): Option[A] = None
-
-    override def handleErrorWith[A](fa: Option[A])(f: E => Option[A]): Option[A] = fa
-
-    override def pure[A](x: A): Option[A] = Some(x)
-
-    import cats.instances.option._
-    override def ap[A, B](ff: Option[A => B])(fa: Option[A]): Option[B] = Applicative[Option].ap(ff)(fa)
-  }
-
   // --- Discrete finite distributions implementations ---
 
   private final case class MapDFD[A, P](pmf: Map[A, P]) extends DiscreteFiniteDistribution[A, P]  {
