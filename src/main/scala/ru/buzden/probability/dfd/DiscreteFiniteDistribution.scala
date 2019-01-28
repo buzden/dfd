@@ -34,7 +34,7 @@ sealed trait DiscreteFiniteDistribution[A, P] {
 object DiscreteFiniteDistribution {
   type Errorable[Container[_]] = ApplicativeError[Container, NonEmptyList[String]]
   private def check[E[_]: Errorable](failMsg: => String)(v: => Boolean): E[Unit] =
-    if (v) NonEmptyList.one(failMsg).raiseError[E, Unit] else ().pure[E]
+    if (!v) NonEmptyList.one(failMsg).raiseError[E, Unit] else ().pure[E]
 
   // --- Discrete finite distributions implementations ---
 
