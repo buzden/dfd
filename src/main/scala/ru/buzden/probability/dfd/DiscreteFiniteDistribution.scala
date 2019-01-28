@@ -34,6 +34,8 @@ object DiscreteFiniteDistribution {
   type Errorable[Container[_]] = ApplicativeError[Container, NonEmptyList[String]]
   private def check[E[_]: Errorable](failMsg: => String)(v: => Boolean): E[Unit] =
     if (!v) NonEmptyList.one(failMsg).raiseError[E, Unit] else ().pure[E]
+  private def checkEq[E[_]: Errorable, A: Eq](desc: => String, actual: A, expected: A): E[Unit] =
+    check(s"$desc is $actual but must be equal to $expected") { actual === expected }
 
   // --- Discrete finite distributions implementations ---
 
@@ -50,12 +52,12 @@ object DiscreteFiniteDistribution {
 
   def apply[A, P: Probability, E[_]: Errorable](pmf: Map[A, P]): E[DiscreteFiniteDistribution[A, P]] =
     check[E]("A probability value that is <= zero exists") { pmf.values.forall(_ >= zero) } *>
-    check[E]("Sum of all probabilities is not equal to one") { pmf.values.sum === one } *>
+    checkEq("Sum of all probabilities", pmf.values.sum, one) *>
     MapDFD(pmf `filter` { case (_, p) => p =!= zero } `withDefaultValue` zero).pure[E]
 
   def apply[A, P: Probability, E[_]: Errorable](support: Set[A])(pmf: A => P): E[DiscreteFiniteDistribution[A, P]] =
     check[E]("A probability value that is <= zero exists") { support.forall(pmf(_) >= zero) } *>
-    check[E]("Sum of all probabilities is not equal to one") { support.toSeq.map(pmf).sum === one } *>
+    checkEq("Sum of all probabilities", support.toSeq.map(pmf).sum, one) *>
     FunctionDFD(pmf, support `filter` { pmf(_) =!= zero }).pure[E]
 
   def proportional[A, P: Probability, E[_]: Errorable](p1: (A, Int), rest: (A, Int)*): E[DiscreteFiniteDistribution[A, P]] = {
