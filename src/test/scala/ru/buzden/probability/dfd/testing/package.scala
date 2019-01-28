@@ -1,5 +1,6 @@
 package ru.buzden.probability.dfd
 
+import cats.data.Validated
 import cats.syntax.apply._
 import cats.syntax.eq._
 import org.scalacheck.Arbitrary.arbitrary
@@ -118,5 +119,11 @@ package object testing {
       Map(dfd.support.toList.map(a => (a, dfd.pmf(a))):_*)
     val diffm = implicitly[Diffable[Map[A, P]]]
     diffm.diff(dfd2map(actual), dfd2map(expected))
+  }
+
+  implicit def validatedDiffable[A: Diffable, E: Diffable]: Diffable[Validated[E, A]] = { (actual, expected) =>
+    // todo to reimplement this with nice rendering
+    val diffe = implicitly[Diffable[Either[E, A]]]
+    diffe.diff(actual.toEither, expected.toEither)
   }
 }
