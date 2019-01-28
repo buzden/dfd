@@ -32,7 +32,7 @@ sealed trait DiscreteFiniteDistribution[A, P] {
 
 object DiscreteFiniteDistribution {
   type Errorable[Container[_]] = ApplicativeError[Container, NonEmptyList[String]]
-  private def check[E[_]: Errorable](failMsg: => String)(v: => Boolean): E[Unit] =
+  private def check[E[_]: Errorable](failMsg: => String)(v: Boolean): E[Unit] =
     if (!v) NonEmptyList.one(failMsg).raiseError[E, Unit] else ().pure[E]
   private def checkEq[E[_]: Errorable, A: Eq](desc: => String, actual: A, expected: A): E[Unit] =
     check(s"$desc is $actual but must be equal to $expected") { actual === expected }
