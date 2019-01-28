@@ -1,6 +1,6 @@
 package ru.buzden.probability.dfd.testing
 
-import cats.Apply
+import cats.{Applicative, ApplicativeError, Apply}
 import cats.data.NonEmptySet
 import cats.kernel.laws.discipline.EqTests
 import cats.syntax.eq._
@@ -40,6 +40,17 @@ object DFDSpec extends Specification with ScalaCheck with Discipline { def is = 
   laws of typeclass instances
     $eqLaws
   """
+
+  implicit def prodolbErrorOption[E]: ApplicativeError[Option, E] = new ApplicativeError[Option, E] {
+    override def raiseError[A](e: E): Option[A] = None
+
+    override def handleErrorWith[A](fa: Option[A])(f: E => Option[A]): Option[A] = fa
+
+    override def pure[A](x: A): Option[A] = Some(x)
+
+    import cats.instances.option._
+    override def ap[A, B](ff: Option[A => B])(fa: Option[A]): Option[B] = Applicative[Option].ap(ff)(fa)
+  }
 
   // --- Thing-in-ifself-like checks ---
 
@@ -85,14 +96,14 @@ object DFDSpec extends Specification with ScalaCheck with Discipline { def is = 
   def proportionalCase[A: Arbitrary] =
     proportionalLike[A, Int](
       "proportional",
-      proportional,
+      proportional[A, Rational, Option],
       nonNegNum[Int],
       Rational(_, _))
 
   def unnormalizedCase[A: Arbitrary] =
     proportionalLike[A, Rational](
       "unnormalized",
-      unnormalized,
+      unnormalized[A, Rational, Option],
       nonNegRational,
       _ / _)
 
@@ -132,7 +143,7 @@ object DFDSpec extends Specification with ScalaCheck with Discipline { def is = 
   lazy val bernouliCase = TestCase[Boolean, Rational, Rational](
     caseName = "bernouli",
     distrParameters = between0and1[Rational],
-    createDfd = bernouli,
+    createDfd = bernouli[Rational, Option],
     checkSupport = (_, support) => support must not be empty,
     checkProbabilities = { (p, d) =>
       (d.pmf(true) ==== p) and (d.pmf(false) ==== (1 - p))

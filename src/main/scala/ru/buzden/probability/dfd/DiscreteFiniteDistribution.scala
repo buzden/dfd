@@ -1,11 +1,14 @@
 package ru.buzden.probability.dfd
 
-import cats.data.NonEmptySet
+import cats.data.{NonEmptyList, NonEmptySet}
 import cats.instances.list._
 import cats.instances.map._
+import cats.syntax.applicative._
+import cats.syntax.applicativeError._
+import cats.syntax.apply._
 import cats.syntax.foldable._
 import cats.syntax.order._
-import cats.{Eq, Order}
+import cats.{Applicative, ApplicativeError, Eq, Order}
 import ru.buzden.util.numeric.syntax._
 
 import scala.Fractional.Implicits._
@@ -23,9 +26,15 @@ sealed trait DiscreteFiniteDistribution[A, P] {
   /** Cumulative distribution function */
   def cdf(implicit O: Order[A], N: Numeric[P]): A => P = a =>
     support.filter(_ <= a).map(pmf).sum
+
+  private[dfd] def pure[F[_]](implicit A: Applicative[F]): F[DiscreteFiniteDistribution[A, P]] = A.pure(this)
 }
 
 object DiscreteFiniteDistribution {
+  type Errorable[Container[_]] = ApplicativeError[Container, NonEmptyList[String]]
+  private def check[E[_]: Errorable](failMsg: => String)(v: => Boolean): E[Unit] =
+    if (!v) NonEmptyList.one(failMsg).raiseError[E, Unit] else ().pure[E]
+
   // --- Discrete finite distributions implementations ---
 
   private final case class MapDFD[A, P](pmf: Map[A, P]) extends DiscreteFiniteDistribution[A, P]  {
@@ -39,26 +48,27 @@ object DiscreteFiniteDistribution {
 
   // --- Discrete finite distribution creation variants ---
 
-  def apply[A, P: Probability](pmf: Map[A, P]): Option[DiscreteFiniteDistribution[A, P]] =
-    if (pmf.values.forall(_ >= zero) && (pmf.values.sum === one))
-      Some(MapDFD(pmf `filter` { case (_, p) => p =!= zero } `withDefaultValue` zero)) else None
+  def apply[A, P: Probability, E[_]: Errorable](pmf: Map[A, P]): E[DiscreteFiniteDistribution[A, P]] =
+    check[E]("A probability value that is <= zero exists") { pmf.values.forall(_ >= zero) } *>
+    check[E]("Sum of all probabilities is not equal to one") { pmf.values.sum === one } *>
+    MapDFD(pmf `filter` { case (_, p) => p =!= zero } `withDefaultValue` zero).pure[E]
 
-  def apply[A, P: Probability](support: Set[A])(pmf: A => P): Option[DiscreteFiniteDistribution[A, P]] =
-    if (support.forall(pmf(_) >= zero) && (support.toSeq.map(pmf).sum === one))
-      Some(FunctionDFD(pmf, support `filter` { pmf(_) =!= zero })) else None
+  def apply[A, P: Probability, E[_]: Errorable](support: Set[A])(pmf: A => P): E[DiscreteFiniteDistribution[A, P]] =
+    check[E]("A probability value that is <= zero exists") { support.forall(pmf(_) >= zero) } *>
+    check[E]("Sum of all probabilities is not equal to one") { support.toSeq.map(pmf).sum === one } *>
+    FunctionDFD(pmf, support `filter` { pmf(_) =!= zero }).pure[E]
 
-  def proportional[A, P: Probability](p1: (A, Int), rest: (A, Int)*): Option[DiscreteFiniteDistribution[A, P]] = {
+  def proportional[A, P: Probability, E[_]: Errorable](p1: (A, Int), rest: (A, Int)*): E[DiscreteFiniteDistribution[A, P]] = {
     def pairToProb(p: (A, Int)): (A, P) = p.copy(_2 = p._2.asNumeric)
-    unnormalized(pairToProb(p1), rest `map` pairToProb :_*)
+    unnormalized[A, P, E](pairToProb(p1), rest `map` pairToProb :_*)
   }
 
-  def unnormalized[A, P: Probability](p1: (A, P), rest: (A, P)*): Option[DiscreteFiniteDistribution[A, P]] = {
+  def unnormalized[A, P: Probability, E[_]: Errorable](p1: (A, P), rest: (A, P)*): E[DiscreteFiniteDistribution[A, P]] = {
     import ru.buzden.util.numeric.instances.numericAdditiveMonoid
     val ps = p1 :: rest.toList
     val sum = ps.foldMap(_._2)
-    if (sum =!= zero)
-      DiscreteFiniteDistribution(ps `foldMap` { case (a, p) => Map(a -> p / sum) })
-    else None
+    check[E]("Sum is equal to zero") { sum =!= zero } *>
+    DiscreteFiniteDistribution[A, P, E](ps `foldMap` { case (a, p) => Map(a -> p / sum) })
   }
 
   def eager[A, P](dfd: DiscreteFiniteDistribution[A, P]): DiscreteFiniteDistribution[A, P] = dfd match {
@@ -68,20 +78,23 @@ object DiscreteFiniteDistribution {
 
   // --- Examples of discrete finite distributions ---
 
-  def bernouli[P: Probability](p: P): Option[DiscreteFiniteDistribution[Boolean, P]] =
-    if (p >= zero && p <= one) DiscreteFiniteDistribution(Map(true -> p, false -> (one - p))) else None
+  def bernouli[P: Probability, E[_]: Errorable](p: P): E[DiscreteFiniteDistribution[Boolean, P]] =
+    check[E]("Bernouli P parameter must be between 0 and 1") { p >= zero && p <= one } *>
+    DiscreteFiniteDistribution[Boolean, P, E](Map(true -> p, false -> (one - p)))
 
-  def binomial[N: Integral, P: Probability](n: N, p: P)(implicit ntop: N => P): Option[DiscreteFiniteDistribution[N, P]] =
-    if (p >= zero[P] && p <= one[P]) DiscreteFiniteDistribution((zero[N] to n).toSet) { k =>
+  def binomial[N: Integral, P: Probability, E[_]: Errorable](n: N, p: P)(implicit ntop: N => P): E[DiscreteFiniteDistribution[N, P]] =
+    check[E]("Binomial coefficient P must be in [0, 1]") { p >= zero[P] && p <= one[P] } *>
+    DiscreteFiniteDistribution[N, P, E]((zero[N] to n).toSet) { k =>
       p.pow(k) * (one[P] - p).pow(n - k) * n.combinationsI(k)
-    } else None
+    }
 
-  def hypergeometric[N: Integral, P: Probability](N: N, K: N, n: N)(implicit ntop: N => P): Option[DiscreteFiniteDistribution[N, P]] =
-    if (N >= zero[N] && K >= zero[N] && K <= N && n >= zero[N] && n <= N)
-      DiscreteFiniteDistribution(((zero[N] `max` n + K - N) `to` (n `min` K)).toSet) { k =>
-        ntop(K.combinationsI(k) * (N - K).combinationsI(n - k)) / ntop(N.combinationsI(n))
-      }
-    else None
+  def hypergeometric[N: Integral, P: Probability, E[_]: Errorable](N: N, K: N, n: N)(implicit ntop: N => P): E[DiscreteFiniteDistribution[N, P]] =
+    check[E]("N must be non-negative") { N >= zero[N] } *>
+    check[E]("K must lie between 0 and N") { K >= zero[N] && K <= N } *>
+    check[E]("n must lie between 0 and N") { n >= zero[N] && n <= N } *>
+    DiscreteFiniteDistribution[N, P, E](((zero[N] `max` n + K - N) `to` (n `min` K)).toSet) { k =>
+      ntop(K.combinationsI(k) * (N - K).combinationsI(n - k)) / ntop(N.combinationsI(n))
+    }
 
   def uniform[A, P: Probability](support: NonEmptySet[A]): DiscreteFiniteDistribution[A, P] = {
     val p = one / support.length.asNumeric
