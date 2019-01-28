@@ -32,8 +32,10 @@ sealed trait DiscreteFiniteDistribution[A, P] {
 
 object DiscreteFiniteDistribution {
   type Errorable[Container[_]] = ApplicativeError[Container, NonEmptyList[String]]
-  private def check[E[_]: Errorable](failMsg: => String)(v: => Boolean): E[Unit] =
+  private def check[E[_]: Errorable](failMsg: => String)(v: Boolean): E[Unit] =
     if (!v) NonEmptyList.one(failMsg).raiseError[E, Unit] else ().pure[E]
+  private def checkEq[E[_]: Errorable, A: Eq](desc: => String, actual: A, expected: A): E[Unit] =
+    check(s"$desc is $actual but must be equal to $expected") { actual === expected }
 
   // --- Discrete finite distributions implementations ---
 
@@ -50,12 +52,12 @@ object DiscreteFiniteDistribution {
 
   def apply[A, P: Probability, E[_]: Errorable](pmf: Map[A, P]): E[DiscreteFiniteDistribution[A, P]] =
     check[E]("A probability value that is <= zero exists") { pmf.values.forall(_ >= zero) } *>
-    check[E]("Sum of all probabilities is not equal to one") { pmf.values.sum === one } *>
+    checkEq("Sum of all probabilities", pmf.values.sum, one) *>
     MapDFD(pmf `filter` { case (_, p) => p =!= zero } `withDefaultValue` zero).pure[E]
 
   def apply[A, P: Probability, E[_]: Errorable](support: Set[A])(pmf: A => P): E[DiscreteFiniteDistribution[A, P]] =
     check[E]("A probability value that is <= zero exists") { support.forall(pmf(_) >= zero) } *>
-    check[E]("Sum of all probabilities is not equal to one") { support.toSeq.map(pmf).sum === one } *>
+    checkEq("Sum of all probabilities", support.toSeq.map(pmf).sum, one) *>
     FunctionDFD(pmf, support `filter` { pmf(_) =!= zero }).pure[E]
 
   def proportional[A, P: Probability, E[_]: Errorable](p1: (A, Int), rest: (A, Int)*): E[DiscreteFiniteDistribution[A, P]] = {
@@ -67,7 +69,7 @@ object DiscreteFiniteDistribution {
     import ru.buzden.util.numeric.instances.numericAdditiveMonoid
     val ps = p1 :: rest.toList
     val sum = ps.foldMap(_._2)
-    check[E]("Sum is equal to zero") { sum =!= zero } *>
+    check[E]("Sum of probabilities is equal to zero") { sum =!= zero } *>
     DiscreteFiniteDistribution[A, P, E](ps `foldMap` { case (a, p) => Map(a -> p / sum) })
   }
 
@@ -79,19 +81,19 @@ object DiscreteFiniteDistribution {
   // --- Examples of discrete finite distributions ---
 
   def bernouli[P: Probability, E[_]: Errorable](p: P): E[DiscreteFiniteDistribution[Boolean, P]] =
-    check[E]("Bernouli P parameter must be between 0 and 1") { p >= zero && p <= one } *>
+    check[E](s"Bernouli parameter P=$p must be between 0 and 1") { p >= zero && p <= one } *>
     DiscreteFiniteDistribution[Boolean, P, E](Map(true -> p, false -> (one - p)))
 
   def binomial[N: Integral, P: Probability, E[_]: Errorable](n: N, p: P)(implicit ntop: N => P): E[DiscreteFiniteDistribution[N, P]] =
-    check[E]("Binomial coefficient P must be in [0, 1]") { p >= zero[P] && p <= one[P] } *>
+    check[E](s"Binomial coefficient P=$p must be in [0, 1]") { p >= zero[P] && p <= one[P] } *>
     DiscreteFiniteDistribution[N, P, E]((zero[N] to n).toSet) { k =>
       p.pow(k) * (one[P] - p).pow(n - k) * n.combinationsI(k)
     }
 
   def hypergeometric[N: Integral, P: Probability, E[_]: Errorable](N: N, K: N, n: N)(implicit ntop: N => P): E[DiscreteFiniteDistribution[N, P]] =
-    check[E]("N must be non-negative") { N >= zero[N] } *>
-    check[E]("K must lie between 0 and N") { K >= zero[N] && K <= N } *>
-    check[E]("n must lie between 0 and N") { n >= zero[N] && n <= N } *>
+    check[E](s"N=$N must be non-negative") { N >= zero[N] } *>
+    check[E](s"K=$K must lie between 0 and N=$N") { K >= zero[N] && K <= N } *>
+    check[E](s"n=$n must lie between 0 and N=$N") { n >= zero[N] && n <= N } *>
     DiscreteFiniteDistribution[N, P, E](((zero[N] `max` n + K - N) `to` (n `min` K)).toSet) { k =>
       ntop(K.combinationsI(k) * (N - K).combinationsI(n - k)) / ntop(N.combinationsI(n))
     }
