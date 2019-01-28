@@ -27,8 +27,7 @@ sealed trait DiscreteFiniteDistribution[A, P] {
   def cdf(implicit O: Order[A], N: Numeric[P]): A => P = a =>
     support.filter(_ <= a).map(pmf).sum
 
-  private[dfd] def pure[F[_]: Applicative]: F[DiscreteFiniteDistribution[A, P]] =
-    this.pure[F]
+  private[dfd] def pure[F[_]](implicit A: Applicative[F]): F[DiscreteFiniteDistribution[A, P]] = A.pure(this)
 }
 
 object DiscreteFiniteDistribution {
