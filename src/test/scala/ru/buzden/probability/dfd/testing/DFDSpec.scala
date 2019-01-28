@@ -57,7 +57,7 @@ object DFDSpec extends Specification with ScalaCheck with Discipline { def is = 
     distrParameters = nonEmptyListOfDistinct(arbitrary[A]) `flatMap` { as =>
       listOfNWithNonZero(as.size, nonNegRational) `map` normalize `map` (as `zip` _) `map` { Map(_:_*) }
     },
-    createDfd = DiscreteFiniteDistribution[A, Rational, V](_),
+    createDfd = DiscreteFiniteDistribution[A, Rational, V],
     checkSupport = (m, support) => support ==== m.filter(_._2 =!= zero[Rational]).keySet,
     checkProbabilities = { (m, d) =>
       m `map` { case (a, p) => d.pmf(a) ==== p } `reduce` (_ and _)
