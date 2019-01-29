@@ -45,7 +45,10 @@ object syntax {
       if (k === zero) one
       else if (n === k) one
       else if (k > n) zero
-      else div((k to n).product, (k min (n - k)).factorial)
+      else {
+        val kk = k `max` n - k
+        div((kk + one `to` n).product, (n - kk).factorial)
+      }
 
     def combinationsI(k: N)(implicit N: Integral[N]): N = c(k)(N.quot)
     def combinationsF(k: N)(implicit N: Fractional[N]): N = c(k)(N.div)

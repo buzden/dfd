@@ -1,5 +1,6 @@
 package ru.buzden.probability.dfd
 
+import cats.data.Validated
 import cats.syntax.apply._
 import cats.syntax.eq._
 import org.scalacheck.Arbitrary.arbitrary
@@ -82,13 +83,12 @@ package object testing {
     arbitrary[BigInt].map(SafeLong(_)),
   ))
   implicit val cogenSafeLong: Cogen[SafeLong] = Cogen.cogenLong.contramap(_.toLong)
+  implicit val cogenRational: Cogen[Rational] = cogenSafeLong.contramap { r => r.numerator + r.denominator }
 
   implicit def cogen4dfd[A: Cogen:Ordering, P: Cogen]: Cogen[DiscreteFiniteDistribution[A, P]] =
     Cogen.cogenVector[(A, P)].contramap { dfd =>
       dfd.support.toVector.sorted.map(a => (a, dfd.pmf(a)))
     }
-  implicit val cogenDfdIR: Cogen[DiscreteFiniteDistribution[Int, Rational]] = implicitly
-  implicit val cogenDfdSlR: Cogen[DiscreteFiniteDistribution[SafeLong, Rational]] = implicitly
 
   implicit val chooseBigInt: Choose[BigInt] = (min, max) => {
     if (min > max) throw new Choose.IllegalBoundsError(min, max) // they originally throw :-(
@@ -118,5 +118,11 @@ package object testing {
       Map(dfd.support.toList.map(a => (a, dfd.pmf(a))):_*)
     val diffm = implicitly[Diffable[Map[A, P]]]
     diffm.diff(dfd2map(actual), dfd2map(expected))
+  }
+
+  implicit def validatedDiffable[A: Diffable, E: Diffable]: Diffable[Validated[E, A]] = { (actual, expected) =>
+    // todo to reimplement this with nice rendering
+    val diffe = implicitly[Diffable[Either[E, A]]]
+    diffe.diff(actual.toEither, expected.toEither)
   }
 }
