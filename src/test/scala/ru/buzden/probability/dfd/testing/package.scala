@@ -83,13 +83,12 @@ package object testing {
     arbitrary[BigInt].map(SafeLong(_)),
   ))
   implicit val cogenSafeLong: Cogen[SafeLong] = Cogen.cogenLong.contramap(_.toLong)
+  implicit val cogenRational: Cogen[Rational] = cogenSafeLong.contramap { r => r.numerator + r.denominator }
 
   implicit def cogen4dfd[A: Cogen:Ordering, P: Cogen]: Cogen[DiscreteFiniteDistribution[A, P]] =
     Cogen.cogenVector[(A, P)].contramap { dfd =>
       dfd.support.toVector.sorted.map(a => (a, dfd.pmf(a)))
     }
-  implicit val cogenDfdIR: Cogen[DiscreteFiniteDistribution[Int, Rational]] = implicitly
-  implicit val cogenDfdSlR: Cogen[DiscreteFiniteDistribution[SafeLong, Rational]] = implicitly
 
   implicit val chooseBigInt: Choose[BigInt] = (min, max) => {
     if (min > max) throw new Choose.IllegalBoundsError(min, max) // they originally throw :-(
