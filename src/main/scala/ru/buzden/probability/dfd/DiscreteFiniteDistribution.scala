@@ -80,9 +80,9 @@ object DiscreteFiniteDistribution {
 
   // --- Examples of discrete finite distributions ---
 
-  def bernouli[P: Probability, E[_]: Errorable](p: P): E[DiscreteFiniteDistribution[Boolean, P]] =
-    check[E](s"Bernouli parameter P=$p must be between 0 and 1") { p >= zero && p <= one } *>
-    DiscreteFiniteDistribution[Boolean, P, E](Map(true -> p, false -> (one - p)))
+  def bernouli[N: Numeric, P: Probability, E[_]: Errorable](p: P): E[DiscreteFiniteDistribution[N, P]] =
+    check[E](s"Bernouli parameter P=$p must be between 0 and 1") { p >= zero[P] && p <= one[P] } *>
+    DiscreteFiniteDistribution[N, P, E](Map(one[N] -> p, zero[N] -> (one[P] - p)))
 
   def binomial[N: Integral, P: Probability, E[_]: Errorable](n: N, p: P)(implicit ntop: N => P): E[DiscreteFiniteDistribution[N, P]] =
     check[E](s"Binomial coefficient P=$p must be in [0, 1]") { p >= zero[P] && p <= one[P] } *>
