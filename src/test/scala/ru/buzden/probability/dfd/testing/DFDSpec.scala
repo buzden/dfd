@@ -246,7 +246,7 @@ object DFDSpec extends Specification with ScalaCheck with Discipline { def is = 
     supportAndPmfCase[SafeLong].genD,
     proportionalCase[SafeLong].genD,
     unnormalizedCase[SafeLong].genD,
-    // no bernouli case until it's for booleans
+    bernouliCase[SafeLong].genD,
     binomialCase.genD,
     hypergeometricCase.genD,
     uniformCase[SafeLong].genD,
