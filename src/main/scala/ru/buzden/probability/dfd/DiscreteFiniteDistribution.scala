@@ -8,7 +8,7 @@ import cats.syntax.applicativeError._
 import cats.syntax.apply._
 import cats.syntax.foldable._
 import cats.syntax.order._
-import cats.{ApplicativeError, Eq, Order}
+import cats.{ApplicativeError, Eq, Monad, Order}
 import ru.buzden.util.numeric.syntax._
 
 import scala.Fractional.Implicits._
@@ -128,4 +128,14 @@ object DiscreteFiniteDistribution {
     d1.support.forall(d2.support) && d2.support.forall(d1.support) &&
       // PMF are equal on given support
       d1.support.forall(x => d1.pmf(x) === d2.pmf(x))
+
+  // --- cats.Monad instance ---
+
+  implicit def dfdMonad[P: Probability]: Monad[DiscreteFiniteDistribution[?, P]] = new Monad[DiscreteFiniteDistribution[?, P]] {
+    override def pure[A](x: A): DiscreteFiniteDistribution[A, P] = ???
+
+    override def flatMap[A, B](fa: DiscreteFiniteDistribution[A, P])(f: A => DiscreteFiniteDistribution[B, P]): DiscreteFiniteDistribution[B, P] = ???
+
+    override def tailRecM[A, B](a: A)(f: A => DiscreteFiniteDistribution[Either[A, B], P]): DiscreteFiniteDistribution[B, P] = ???
+  }
 }
