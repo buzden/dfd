@@ -29,13 +29,13 @@ object DFDSpec extends Specification with ScalaCheck with Discipline { def is = 
       ${proportionalCase[String].fragments}
       ${unnormalizedCase[String].fragments}
     particular distributions
-      ${bernouliCase.fragments}
+      ${bernouliCase[Int].fragments}
       ${binomialCase.fragments}
       ${hypergeometricCase.fragments}
       ${uniformCase[String].fragments}
     relation between different distributions
-      bernouli(1/2)  == uniform for booleans                                 $bernouliOfHalf
-      binomial(1, p) ~= bernouli(p)                                          $binomialOfOne
+      bernouli(1/2)  == uniform for booleans                                 ${bernouliOfHalf[Int]}
+      binomial(1, p) == bernouli(p)                                          $binomialOfOne
       hypergeometric(N, K, 1) == bernouli(K/N)                               $hypergeometricWithN1
     eagerization preserves support and probabilities                         $eagerizationPreserves
   $eqLaws
@@ -131,13 +131,13 @@ object DFDSpec extends Specification with ScalaCheck with Discipline { def is = 
 
   // --- Particular distribution cases ---
 
-  lazy val bernouliCase = TestCase[Boolean, Rational, Rational](
+  def bernouliCase[N: Numeric] = TestCase[N, Rational, Rational](
     caseName = "bernouli",
     distrParameters = between0and1[Rational],
-    createDfd = bernouli[Rational, V],
+    createDfd = bernouli[N, Rational, V],
     checkSupport = (_, support) => support must not be empty,
     checkProbabilities = { (p, d) =>
-      (d.pmf(true) ==== p) and (d.pmf(false) ==== (1 - p))
+      (d.pmf(one[N]) ==== p) and (d.pmf(zero[N]) ==== (1 - p))
     }
   )
 
@@ -189,14 +189,19 @@ object DFDSpec extends Specification with ScalaCheck with Discipline { def is = 
     }
   )
 
-  def bernouliOfHalf =
-    bernouli[Rational, V](Rational(1, 2)) ==== Valid(uniform(NonEmptySet.of(true, false)))
+  def bernouliOfHalf[N: Numeric] =
+    bernouli[N, Rational, V](Rational(1, 2)) ==== Valid(uniform(NonEmptySet.of(zero[N], one[N])))
 
-  def binomialOfOne =
-    pending("This test requires either functor instance on DFD or bernouli be not only boolean")
+  def binomialOfOne = forAllNoShrink(between0and1[Rational]) { p =>
+    binomial[SafeLong, Rational, V](one[SafeLong], p) ==== bernouli[SafeLong, Rational, V](p)
+  }
 
-  def hypergeometricWithN1 =
-    pending("This test requires either functor instance on DFD or bernouli be not only boolean")
+  def hypergeometricWithN1 = forAllNoShrink(Gen.posNum[SafeLong]) { nn =>
+    forAllNoShrink(chooseNum(one[SafeLong], nn)) { kk =>
+      hypergeometric[SafeLong, Rational, V](nn, kk, one[SafeLong]) ====
+        bernouli[SafeLong, Rational, V](Rational(kk, nn))
+    }
+  }
 
   // --- Auxiliary classes for organization of test cases ---
 
@@ -246,7 +251,7 @@ object DFDSpec extends Specification with ScalaCheck with Discipline { def is = 
     supportAndPmfCase[SafeLong].genD,
     proportionalCase[SafeLong].genD,
     unnormalizedCase[SafeLong].genD,
-    // no bernouli case until it's for booleans
+    bernouliCase[SafeLong].genD,
     binomialCase.genD,
     hypergeometricCase.genD,
     uniformCase[SafeLong].genD,
