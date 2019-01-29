@@ -4,6 +4,7 @@ import cats.Apply
 import cats.data.Validated.Valid
 import cats.data.{NonEmptySet, ValidatedNel}
 import cats.kernel.laws.discipline.EqTests
+import cats.laws.discipline.MonadTests
 import cats.syntax.eq._
 import org.scalacheck.Arbitrary.arbitrary
 import org.scalacheck.Gen.chooseNum
@@ -41,6 +42,7 @@ object DFDSpec extends Specification with ScalaCheck with Discipline { def is = 
       on eagerization                                                        ${preserves[SafeLong](eagerify)}
       on lazification                                                        ${preserves[SafeLong](lazify)}
   $eqLaws
+  $monadLaws
   """
 
   type V[A] = ValidatedNel[String, A]
@@ -49,6 +51,10 @@ object DFDSpec extends Specification with ScalaCheck with Discipline { def is = 
 
   def eqLaws = checkAll("DiscreteFiniteDistribution",
     EqTests[DiscreteFiniteDistribution[SafeLong, Rational]].eqv
+  )
+
+  def monadLaws = checkAll("DiscreteFiniteDistribution",
+    MonadTests[DiscreteFiniteDistribution[?, Rational]].monad[SafeLong, String, SafeLong]
   )
 
   // --- Particular DFD generation and checks cases ---
