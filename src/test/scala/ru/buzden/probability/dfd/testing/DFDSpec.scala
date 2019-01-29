@@ -38,7 +38,7 @@ object DFDSpec extends Specification with ScalaCheck with Discipline { def is = 
       binomial(1, p) == bernouli(p)                                          $binomialOfOne
       hypergeometric(N, K, 1) == bernouli(K/N)                               $hypergeometricWithN1
     preservation of support and probabilities
-      on eagerization                                                        ${preserves[SafeLong](eager)}
+      on eagerization                                                        ${preserves[SafeLong](eagerify)}
       on lazification                                                        ${preserves[SafeLong](lazify)}
   $eqLaws
   """
