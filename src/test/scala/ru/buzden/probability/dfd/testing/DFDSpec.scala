@@ -29,12 +29,12 @@ object DFDSpec extends Specification with ScalaCheck with Discipline { def is = 
       ${proportionalCase[String].fragments}
       ${unnormalizedCase[String].fragments}
     particular distributions
-      ${bernouliCase.fragments}
+      ${bernouliCase[Int].fragments}
       ${binomialCase.fragments}
       ${hypergeometricCase.fragments}
       ${uniformCase[String].fragments}
     relation between different distributions
-      bernouli(1/2)  == uniform for booleans                                 $bernouliOfHalf
+      bernouli(1/2)  == uniform for booleans                                 ${bernouliOfHalf[Int]}
       binomial(1, p) ~= bernouli(p)                                          $binomialOfOne
       hypergeometric(N, K, 1) == bernouli(K/N)                               $hypergeometricWithN1
     eagerization preserves support and probabilities                         $eagerizationPreserves
@@ -131,13 +131,13 @@ object DFDSpec extends Specification with ScalaCheck with Discipline { def is = 
 
   // --- Particular distribution cases ---
 
-  lazy val bernouliCase = TestCase[Boolean, Rational, Rational](
+  def bernouliCase[N: Numeric] = TestCase[N, Rational, Rational](
     caseName = "bernouli",
     distrParameters = between0and1[Rational],
-    createDfd = bernouli[Rational, V],
+    createDfd = bernouli[N, Rational, V],
     checkSupport = (_, support) => support must not be empty,
     checkProbabilities = { (p, d) =>
-      (d.pmf(true) ==== p) and (d.pmf(false) ==== (1 - p))
+      (d.pmf(one[N]) ==== p) and (d.pmf(zero[N]) ==== (1 - p))
     }
   )
 
@@ -189,8 +189,8 @@ object DFDSpec extends Specification with ScalaCheck with Discipline { def is = 
     }
   )
 
-  def bernouliOfHalf =
-    bernouli[Rational, V](Rational(1, 2)) ==== Valid(uniform(NonEmptySet.of(true, false)))
+  def bernouliOfHalf[N: Numeric] =
+    bernouli[N, Rational, V](Rational(1, 2)) ==== Valid(uniform(NonEmptySet.of(zero[N], one[N])))
 
   def binomialOfOne =
     pending("This test requires either functor instance on DFD or bernouli be not only boolean")
