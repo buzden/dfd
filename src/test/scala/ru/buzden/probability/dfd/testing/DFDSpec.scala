@@ -258,4 +258,12 @@ object DFDSpec extends Specification with ScalaCheck with Discipline { def is = 
     hypergeometricCase.genD,
     uniformCase[SafeLong].genD,
   ))
+
+  implicit def arbDfdAny[A: Arbitrary:Cogen]: Arbitrary[DiscreteFiniteDistribution[A, Rational]] =
+    Arbitrary(Gen.oneOf(
+      normalizedMapCase[A].genD,
+      supportAndPmfCase[A].genD,
+      proportionalCase[A].genD,
+      unnormalizedCase[A].genD,
+    ))
 }
