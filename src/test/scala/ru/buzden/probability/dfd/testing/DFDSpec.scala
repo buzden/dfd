@@ -37,7 +37,9 @@ object DFDSpec extends Specification with ScalaCheck with Discipline { def is = 
       bernouli(1/2)  == uniform for booleans                                 ${bernouliOfHalf[Int]}
       binomial(1, p) == bernouli(p)                                          $binomialOfOne
       hypergeometric(N, K, 1) == bernouli(K/N)                               $hypergeometricWithN1
-    eagerization preserves support and probabilities                         $eagerizationPreserves
+    preservation of support and probabilities
+      on eagerization                                                        ${preserves[SafeLong](eagerify)}
+      on lazification                                                        ${preserves[SafeLong](lazify)}
   $eqLaws
   """
 
@@ -124,9 +126,9 @@ object DFDSpec extends Specification with ScalaCheck with Discipline { def is = 
     }
   )
 
-  def eagerizationPreserves[A](implicit arbD: Arbitrary[DiscreteFiniteDistribution[A, Rational]]) =
+  def preserves[A](f: DiscreteFiniteDistribution[A, Rational] => DiscreteFiniteDistribution[A, Rational])(implicit arbD: Arbitrary[DiscreteFiniteDistribution[A, Rational]]) =
     forAllNoShrink { dfd: DiscreteFiniteDistribution[A, Rational] =>
-      eager(dfd) ==== dfd
+      f(dfd) ==== dfd
     }
 
   // --- Particular distribution cases ---

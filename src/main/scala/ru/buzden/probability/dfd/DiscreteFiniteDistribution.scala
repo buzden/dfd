@@ -73,10 +73,16 @@ object DiscreteFiniteDistribution {
     DiscreteFiniteDistribution[A, P, E](ps `foldMap` { case (a, p) => Map(a -> p / sum) })
   }
 
-  def eager[A, P](dfd: DiscreteFiniteDistribution[A, P]): DiscreteFiniteDistribution[A, P] = dfd match {
+  def eagerify[A, P](dfd: DiscreteFiniteDistribution[A, P]): DiscreteFiniteDistribution[A, P] = dfd match {
     case m@MapDFD(_) => m
     case FunctionDFD(pmf, support) => MapDFD(Map(support.map { a => a -> pmf(a) }.toSeq:_*))
   }
+
+  def lazify[A, P: Probability](dfd: DiscreteFiniteDistribution[A, P]): DiscreteFiniteDistribution[A, P] =
+    dfd match {
+      case MapDFD(m) => FunctionDFD(m, m.keySet)
+      case f@FunctionDFD(_, _) => f
+    }
 
   // --- Examples of discrete finite distributions ---
 
