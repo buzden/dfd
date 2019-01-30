@@ -132,7 +132,12 @@ object DiscreteFiniteDistribution {
   // --- cats.Monad instance ---
 
   implicit def dfdMonad[P: Probability]: Monad[DiscreteFiniteDistribution[?, P]] = new Monad[DiscreteFiniteDistribution[?, P]] {
-    override def pure[A](x: A): DiscreteFiniteDistribution[A, P] = ???
+    def unsafeRidOfE[E, A](ei: E Either A): A = ei.toOption.get
+    import cats.instances.either._
+
+    override def pure[A](x: A): DiscreteFiniteDistribution[A, P] = unsafeRidOfE {
+      DiscreteFiniteDistribution(Set(x))(_ => one[P])
+    }
 
     override def flatMap[A, B](fa: DiscreteFiniteDistribution[A, P])(f: A => DiscreteFiniteDistribution[B, P]): DiscreteFiniteDistribution[B, P] = ???
 
