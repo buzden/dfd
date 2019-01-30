@@ -39,13 +39,14 @@ object DiscreteFiniteDistribution {
 
   // --- Discrete finite distributions implementations ---
 
-  private final case class MapDFD[A, P: Probability](pmfRaw: Map[A, P]) extends DiscreteFiniteDistribution[A, P]  {
+  private final case class MapDFD[A, P: Probability](pmfRaw: Map[A, P])
+      extends DiscreteFiniteDistribution[A, P]  {
     override lazy val pmf: Map[A, P] = pmfRaw `filter` { case (_, p) => p =!= zero } `withDefaultValue` zero
     override lazy val support: Set[A] = pmf.keySet
   }
 
   private final case class FunctionDFD[A, P: Probability](pmfRaw: A => P, supportRaw: Set[A])
-    extends DiscreteFiniteDistribution[A, P] {
+      extends DiscreteFiniteDistribution[A, P] {
     override lazy val pmf: A => P = a => if (support(a)) pmfRaw(a) else zero
     override lazy val support: Set[A] = supportRaw `filter` { pmf(_) =!= zero }
   }
