@@ -5,6 +5,7 @@ import cats.data.Validated.Valid
 import cats.data.{NonEmptySet, ValidatedNel}
 import cats.kernel.laws.discipline.EqTests
 import cats.laws.discipline.MonadTests
+import cats.laws.discipline.SemigroupalTests.Isomorphisms
 import cats.syntax.eq._
 import org.scalacheck.Arbitrary.arbitrary
 import org.scalacheck.Gen.chooseNum
@@ -53,8 +54,9 @@ object DFDSpec extends Specification with ScalaCheck with Discipline { def is = 
     EqTests[DiscreteFiniteDistribution[SafeLong, Rational]].eqv
   )
 
-  def monadLaws = checkAll("DiscreteFiniteDistribution",
-    MonadTests[DiscreteFiniteDistribution[?, Rational]].monad[SafeLong, String, SafeLong]
+  type DfdRational[A] = DiscreteFiniteDistribution[A, Rational]
+  def monadLaws(implicit wtf: Isomorphisms[DfdRational]) = checkAll("DiscreteFiniteDistribution",
+    MonadTests[DfdRational].monad[SafeLong, String, SafeLong]
   )
 
   // --- Particular DFD generation and checks cases ---
