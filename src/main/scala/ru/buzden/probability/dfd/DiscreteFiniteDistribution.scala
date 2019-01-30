@@ -39,13 +39,15 @@ object DiscreteFiniteDistribution {
 
   // --- Discrete finite distributions implementations ---
 
-  private final case class MapDFD[A, P](pmf: Map[A, P]) extends DiscreteFiniteDistribution[A, P]  {
+  private final case class MapDFD[A, P: Probability](m: Map[A, P]) extends DiscreteFiniteDistribution[A, P]  {
+    override def pmf: Map[A, P] = m `filter` { case (_, p) => p =!= zero } `withDefaultValue` zero
     override def support: Set[A] = pmf.keySet
   }
 
-  private final case class FunctionDFD[A, P: Probability](pmfBase: A => P, support: Set[A])
+  private final case class FunctionDFD[A, P: Probability](pmfBase: A => P, supportBase: Set[A])
     extends DiscreteFiniteDistribution[A, P] {
     override def pmf: A => P = a => if (support(a)) pmfBase(a) else zero
+    override def support: Set[A] = supportBase `filter` { pmf(_) =!= zero }
   }
 
   // --- Discrete finite distribution creation variants ---
@@ -53,12 +55,12 @@ object DiscreteFiniteDistribution {
   def apply[A, P: Probability, E[_]: Errorable](pmf: Map[A, P]): E[DiscreteFiniteDistribution[A, P]] =
     check[E]("A probability value that is <= zero exists") { pmf.values.forall(_ >= zero) } *>
     checkEq("Sum of all probabilities", pmf.values.sum, one) *>
-    MapDFD(pmf `filter` { case (_, p) => p =!= zero } `withDefaultValue` zero).pure[E]
+    MapDFD(pmf).pure[E]
 
   def apply[A, P: Probability, E[_]: Errorable](support: Set[A])(pmf: A => P): E[DiscreteFiniteDistribution[A, P]] =
     check[E]("A probability value that is <= zero exists") { support.forall(pmf(_) >= zero) } *>
     checkEq("Sum of all probabilities", support.toSeq.map(pmf).sum, one) *>
-    FunctionDFD(pmf, support `filter` { pmf(_) =!= zero }).pure[E]
+    FunctionDFD(pmf, support).pure[E]
 
   def proportional[A, P: Probability, E[_]: Errorable](p1: (A, Int), rest: (A, Int)*): E[DiscreteFiniteDistribution[A, P]] = {
     def pairToProb(p: (A, Int)): (A, P) = p.copy(_2 = p._2.asNumeric)
