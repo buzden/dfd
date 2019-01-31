@@ -146,13 +146,13 @@ object DiscreteFiniteDistribution {
 
     // todo to treat function DFDs in the lazy manner (if it's possible)
     override def map[A, B](fa: DFD[A])(f: A => B): DFD[B] = {
-      val ms: List[(B, P)] = dfd2aps(fa).map { case (a, p) => (f(a), p) }
+      val ms = dfd2aps(fa) `map` { case (a, p) => (f(a), p) }
       MapDFD(ms `foldMap` { Map(_) })
     }
 
     // todo to treat function DFDs in the lazy manner (if it's possible)
     override def flatMap[A, B](fa: DFD[A])(f: A => DFD[B]): DFD[B] = {
-      val ms: List[(B, P)] = for {
+      val ms = for {
         (a, p) <- dfd2aps(fa)
         (b, q) <- dfd2aps(f(a))
       } yield b -> p * q
