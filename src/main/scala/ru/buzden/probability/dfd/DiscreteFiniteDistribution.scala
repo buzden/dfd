@@ -8,7 +8,7 @@ import cats.syntax.applicativeError._
 import cats.syntax.apply._
 import cats.syntax.foldable._
 import cats.syntax.order._
-import cats.{ApplicativeError, Eq, Monad, Order}
+import cats.{ApplicativeError, Eq, Monad, Monoid, Order}
 import ru.buzden.util.numeric.syntax._
 
 import scala.Fractional.Implicits._
@@ -134,7 +134,21 @@ object DiscreteFiniteDistribution {
   implicit def dfdMonad[P: Probability]: Monad[DiscreteFiniteDistribution[?, P]] = new Monad[DiscreteFiniteDistribution[?, P]] {
     override def pure[A](x: A): DiscreteFiniteDistribution[A, P] = FunctionDFD(Set(x), _ => one[P])
 
-    override def flatMap[A, B](fa: DiscreteFiniteDistribution[A, P])(f: A => DiscreteFiniteDistribution[B, P]): DiscreteFiniteDistribution[B, P] = ???
+    private def dfd2aps[A](dfd: DiscreteFiniteDistribution[A, P]): List[(A, P)] = dfd match {
+      case MapDFD(m) => m.toList
+      case FunctionDFD(s, f) => s.toList `map` { a => a -> f(a) }
+    }
+
+    implicit def mapMonoid[B]: Monoid[Map[B, P]] = implicitly // workaround of weakness of Scala 2 compiler
+
+    // todo to treat function DFDs in the lazy manner (if it's possible)
+    override def flatMap[A, B](fa: DiscreteFiniteDistribution[A, P])(f: A => DiscreteFiniteDistribution[B, P]): DiscreteFiniteDistribution[B, P] = {
+      val ms: List[(B, P)] = for {
+        (a, p) <- dfd2aps(fa)
+        (b, q) <- dfd2aps(f(a))
+      } yield b -> p * q
+      MapDFD(ms `foldMap` { Map(_) })
+    }
 
     override def tailRecM[A, B](a: A)(f: A => DiscreteFiniteDistribution[Either[A, B], P]): DiscreteFiniteDistribution[B, P] = ???
   }
