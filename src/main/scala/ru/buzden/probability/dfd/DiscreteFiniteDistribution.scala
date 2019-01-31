@@ -142,6 +142,12 @@ object DiscreteFiniteDistribution {
     implicit def mapMonoid[B]: Monoid[Map[B, P]] = implicitly // workaround of weakness of Scala 2 compiler
 
     // todo to treat function DFDs in the lazy manner (if it's possible)
+    override def map[A, B](fa: DiscreteFiniteDistribution[A, P])(f: A => B): DiscreteFiniteDistribution[B, P] = {
+      val ms: List[(B, P)] = dfd2aps(fa).map { case (a, p) => (f(a), p) }
+      MapDFD(ms `foldMap` { Map(_) })
+    }
+
+    // todo to treat function DFDs in the lazy manner (if it's possible)
     override def flatMap[A, B](fa: DiscreteFiniteDistribution[A, P])(f: A => DiscreteFiniteDistribution[B, P]): DiscreteFiniteDistribution[B, P] = {
       val ms: List[(B, P)] = for {
         (a, p) <- dfd2aps(fa)
