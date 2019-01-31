@@ -44,7 +44,7 @@ private object MapDFD {
 private final class FunctionDFD[A, P: Probability](supportRaw: => Set[A], pmfRaw: A => P)
   extends DiscreteFiniteDistribution[A, P] {
   override lazy val pmf: A => P = a => if (support(a)) pmfRaw(a) else zero
-  override lazy val support: Set[A] = supportRaw `filter` { pmf(_) =!= zero }
+  override lazy val support: Set[A] = supportRaw `filter` { pmfRaw(_) =!= zero }
 }
 
 private object FunctionDFD {
