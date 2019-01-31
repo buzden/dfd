@@ -39,13 +39,27 @@ object DiscreteFiniteDistribution {
 
   // --- Discrete finite distributions implementations ---
 
-  private final case class MapDFD[A, P](pmf: Map[A, P]) extends DiscreteFiniteDistribution[A, P]  {
-    override def support: Set[A] = pmf.keySet
+  private final class MapDFD[A, P: Probability](pmfRaw: => Map[A, P])
+      extends DiscreteFiniteDistribution[A, P]  {
+    override lazy val pmf: Map[A, P] = pmfRaw `filter` { case (_, p) => p =!= zero } `withDefaultValue` zero
+    override lazy val support: Set[A] = pmf.keySet
   }
 
-  private final case class FunctionDFD[A, P: Probability](pmfBase: A => P, support: Set[A])
-    extends DiscreteFiniteDistribution[A, P] {
-    override def pmf: A => P = a => if (support(a)) pmfBase(a) else zero
+  object MapDFD {
+    def apply[A, P: Probability](pmfRaw: Map[A, P]): DiscreteFiniteDistribution[A, P] = new MapDFD(pmfRaw)
+    def unapply[A, P](mDfd: MapDFD[A, P]): Option[Map[A, P]] = Some(mDfd.pmf)
+  }
+
+  private final class FunctionDFD[A, P: Probability](pmfRaw: A => P, supportRaw: => Set[A])
+      extends DiscreteFiniteDistribution[A, P] {
+    override lazy val pmf: A => P = a => if (support(a)) pmfRaw(a) else zero
+    override lazy val support: Set[A] = supportRaw `filter` { pmf(_) =!= zero }
+  }
+
+  object FunctionDFD {
+    def apply[A, P: Probability](pmfRaw: A => P, supportRaw: Set[A]): DiscreteFiniteDistribution[A, P] =
+      new FunctionDFD[A, P](pmfRaw, supportRaw)
+    def unapply[A, P](fDfd: FunctionDFD[A, P]): Option[(A => P, Set[A])] = Some((fDfd.pmf, fDfd.support))
   }
 
   // --- Discrete finite distribution creation variants ---
@@ -53,12 +67,12 @@ object DiscreteFiniteDistribution {
   def apply[A, P: Probability, E[_]: Errorable](pmf: Map[A, P]): E[DiscreteFiniteDistribution[A, P]] =
     check[E]("A probability value that is <= zero exists") { pmf.values.forall(_ >= zero) } *>
     checkEq("Sum of all probabilities", pmf.values.sum, one) *>
-    MapDFD(pmf `filter` { case (_, p) => p =!= zero } `withDefaultValue` zero).pure[E]
+    MapDFD(pmf).pure[E]
 
   def apply[A, P: Probability, E[_]: Errorable](support: Set[A])(pmf: A => P): E[DiscreteFiniteDistribution[A, P]] =
     check[E]("A probability value that is <= zero exists") { support.forall(pmf(_) >= zero) } *>
     checkEq("Sum of all probabilities", support.toSeq.map(pmf).sum, one) *>
-    FunctionDFD(pmf, support `filter` { pmf(_) =!= zero }).pure[E]
+    FunctionDFD(pmf, support).pure[E]
 
   def proportional[A, P: Probability, E[_]: Errorable](p1: (A, Int), rest: (A, Int)*): E[DiscreteFiniteDistribution[A, P]] = {
     def pairToProb(p: (A, Int)): (A, P) = p.copy(_2 = p._2.asNumeric)
@@ -73,7 +87,7 @@ object DiscreteFiniteDistribution {
     DiscreteFiniteDistribution[A, P, E](ps `foldMap` { case (a, p) => Map(a -> p / sum) })
   }
 
-  def eagerify[A, P](dfd: DiscreteFiniteDistribution[A, P]): DiscreteFiniteDistribution[A, P] = dfd match {
+  def eagerify[A, P: Probability](dfd: DiscreteFiniteDistribution[A, P]): DiscreteFiniteDistribution[A, P] = dfd match {
     case m@MapDFD(_) => m
     case FunctionDFD(pmf, support) => MapDFD(Map(support.map { a => a -> pmf(a) }.toSeq:_*))
   }
