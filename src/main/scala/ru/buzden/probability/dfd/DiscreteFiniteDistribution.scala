@@ -8,7 +8,7 @@ import cats.syntax.applicativeError._
 import cats.syntax.apply._
 import cats.syntax.foldable._
 import cats.syntax.order._
-import cats.{Applicative, ApplicativeError, Eq, Order}
+import cats.{ApplicativeError, Eq, Order}
 import ru.buzden.util.numeric.syntax._
 
 import scala.Fractional.Implicits._
@@ -26,8 +26,6 @@ sealed trait DiscreteFiniteDistribution[A, P] {
   /** Cumulative distribution function */
   def cdf(implicit O: Order[A], N: Numeric[P]): A => P = a =>
     support.filter(_ <= a).map(pmf).sum
-
-  private[dfd] def pure[F[_]](implicit A: Applicative[F]): F[DiscreteFiniteDistribution[A, P]] = A.pure(this)
 }
 
 // --- Discrete finite distributions implementations ---
