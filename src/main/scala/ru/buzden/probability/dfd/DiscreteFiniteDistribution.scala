@@ -13,6 +13,7 @@ import ru.buzden.util.numeric.syntax._
 
 import scala.Fractional.Implicits._
 import scala.Integral.Implicits._
+import scala.annotation.tailrec
 
 sealed trait DiscreteFiniteDistribution[A, P] {
   /** Probability mass function.
@@ -159,6 +160,18 @@ object DiscreteFiniteDistribution {
       MapDFD(ms `foldMap` { Map(_) })
     }
 
-    override def tailRecM[A, B](a: A)(f: A => DFD[A Either B]): DFD[B] = ???
+    override def tailRecM[A, B](a: A)(f: A => DFD[A Either B]): DFD[B] = {
+      @tailrec
+      def tailRecImpl(curr: DFD[A Either B]): DFD[B] =
+        if (curr.support `forall` { _.isRight }) map(curr)(_.toOption.get)
+        else {
+          val next = flatMap(curr) {
+            case r@Right(_) => pure(r: A Either B)
+            case Left(aa) => f(aa)
+          }
+          tailRecImpl(next)
+        }
+      tailRecImpl(f(a))
+    }
   }
 }
