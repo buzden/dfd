@@ -132,9 +132,12 @@ object DiscreteFiniteDistribution {
   // --- cats.Monad instance ---
 
   implicit def dfdMonad[P: Probability]: Monad[DiscreteFiniteDistribution[?, P]] = new Monad[DiscreteFiniteDistribution[?, P]] {
-    override def pure[A](x: A): DiscreteFiniteDistribution[A, P] = FunctionDFD(Set(x), _ => one[P])
+    /** Just a shorter type alias having the `P` type inside */
+    type DFD[X] = DiscreteFiniteDistribution[X, P]
 
-    private def dfd2aps[A](dfd: DiscreteFiniteDistribution[A, P]): List[(A, P)] = dfd match {
+    override def pure[A](x: A): DFD[A] = FunctionDFD(Set(x), _ => one[P])
+
+    private def dfd2aps[A](dfd: DFD[A]): List[(A, P)] = dfd match {
       case MapDFD(m) => m.toList
       case FunctionDFD(s, f) => s.toList `map` { a => a -> f(a) }
     }
@@ -142,13 +145,13 @@ object DiscreteFiniteDistribution {
     implicit def mapMonoid[B]: Monoid[Map[B, P]] = implicitly // workaround of weakness of Scala 2 compiler
 
     // todo to treat function DFDs in the lazy manner (if it's possible)
-    override def map[A, B](fa: DiscreteFiniteDistribution[A, P])(f: A => B): DiscreteFiniteDistribution[B, P] = {
+    override def map[A, B](fa: DFD[A])(f: A => B): DFD[B] = {
       val ms: List[(B, P)] = dfd2aps(fa).map { case (a, p) => (f(a), p) }
       MapDFD(ms `foldMap` { Map(_) })
     }
 
     // todo to treat function DFDs in the lazy manner (if it's possible)
-    override def flatMap[A, B](fa: DiscreteFiniteDistribution[A, P])(f: A => DiscreteFiniteDistribution[B, P]): DiscreteFiniteDistribution[B, P] = {
+    override def flatMap[A, B](fa: DFD[A])(f: A => DFD[B]): DFD[B] = {
       val ms: List[(B, P)] = for {
         (a, p) <- dfd2aps(fa)
         (b, q) <- dfd2aps(f(a))
@@ -156,6 +159,6 @@ object DiscreteFiniteDistribution {
       MapDFD(ms `foldMap` { Map(_) })
     }
 
-    override def tailRecM[A, B](a: A)(f: A => DiscreteFiniteDistribution[Either[A, B], P]): DiscreteFiniteDistribution[B, P] = ???
+    override def tailRecM[A, B](a: A)(f: A => DFD[A Either B]): DFD[B] = ???
   }
 }
