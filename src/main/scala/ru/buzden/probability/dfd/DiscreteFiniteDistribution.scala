@@ -37,7 +37,7 @@ private final class MapDFD[A, P: Probability](pmfRaw: => Map[A, P])
 }
 
 private object MapDFD {
-  def apply[A, P: Probability](pmfRaw: Map[A, P]): DiscreteFiniteDistribution[A, P] = new MapDFD(pmfRaw)
+  def apply[A, P: Probability](pmfRaw: => Map[A, P]): DiscreteFiniteDistribution[A, P] = new MapDFD(pmfRaw)
   def unapply[A, P](mDfd: MapDFD[A, P]): Option[Map[A, P]] = Some(mDfd.pmf)
 }
 
@@ -48,7 +48,7 @@ private final class FunctionDFD[A, P: Probability](supportRaw: => Set[A], pmfRaw
 }
 
 private object FunctionDFD {
-  def apply[A, P: Probability](pmfRaw: A => P, supportRaw: Set[A]): DiscreteFiniteDistribution[A, P] =
+  def apply[A, P: Probability](pmfRaw: A => P, supportRaw: => Set[A]): DiscreteFiniteDistribution[A, P] =
     new FunctionDFD[A, P](supportRaw, pmfRaw)
   def unapply[A, P](fDfd: FunctionDFD[A, P]): Option[(Set[A], A => P)] = Some((fDfd.support, fDfd.pmf))
 }
