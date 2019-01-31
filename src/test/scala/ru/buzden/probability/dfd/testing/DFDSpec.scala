@@ -48,7 +48,7 @@ object DFDSpec extends Specification with ScalaCheck with Discipline { def is = 
 
   type V[A] = ValidatedNel[String, A]
 
-  // --- Thing-in-ifself-like checks ---
+  // --- Thing-in-itself-like checks ---
 
   def eqLaws = checkAll("discrete finite distribution",
     EqTests[DiscreteFiniteDistribution[SafeLong, Rational]].eqv
