@@ -43,7 +43,7 @@ private object MapDFD {
   def unapply[A, P](mDfd: MapDFD[A, P]): Option[Map[A, P]] = Some(mDfd.pmf)
 }
 
-private final class FunctionDFD[A, P: Probability](pmfRaw: A => P, supportRaw: => Set[A])
+private final class FunctionDFD[A, P: Probability](supportRaw: => Set[A], pmfRaw: A => P)
   extends DiscreteFiniteDistribution[A, P] {
   override lazy val pmf: A => P = a => if (support(a)) pmfRaw(a) else zero
   override lazy val support: Set[A] = supportRaw `filter` { pmf(_) =!= zero }
@@ -51,8 +51,8 @@ private final class FunctionDFD[A, P: Probability](pmfRaw: A => P, supportRaw: =
 
 private object FunctionDFD {
   def apply[A, P: Probability](pmfRaw: A => P, supportRaw: Set[A]): DiscreteFiniteDistribution[A, P] =
-    new FunctionDFD[A, P](pmfRaw, supportRaw)
-  def unapply[A, P](fDfd: FunctionDFD[A, P]): Option[(A => P, Set[A])] = Some((fDfd.pmf, fDfd.support))
+    new FunctionDFD[A, P](supportRaw, pmfRaw)
+  def unapply[A, P](fDfd: FunctionDFD[A, P]): Option[(Set[A], A => P)] = Some((fDfd.support, fDfd.pmf))
 }
 
 object DiscreteFiniteDistribution {
@@ -89,7 +89,7 @@ object DiscreteFiniteDistribution {
 
   def eagerify[A, P: Probability](dfd: DiscreteFiniteDistribution[A, P]): DiscreteFiniteDistribution[A, P] = dfd match {
     case m@MapDFD(_) => m
-    case FunctionDFD(pmf, support) => MapDFD(Map(support.map { a => a -> pmf(a) }.toSeq:_*))
+    case FunctionDFD(support, pmf) => MapDFD(Map(support.map { a => a -> pmf(a) }.toSeq:_*))
   }
 
   def lazify[A, P: Probability](dfd: DiscreteFiniteDistribution[A, P]): DiscreteFiniteDistribution[A, P] =
