@@ -8,7 +8,7 @@ import cats.syntax.applicativeError._
 import cats.syntax.apply._
 import cats.syntax.foldable._
 import cats.syntax.order._
-import cats.{ApplicativeError, Eq, Monad, Monoid, Order}
+import cats.{ApplicativeError, Eq, Monad, Order}
 import ru.buzden.util.numeric.syntax._
 
 import scala.Fractional.Implicits._
@@ -143,7 +143,7 @@ object DiscreteFiniteDistribution {
       case FunctionDFD(s, f) => s.toList `map` { a => a -> f(a) }
     }
 
-    implicit def mapMonoid[B]: Monoid[Map[B, P]] = implicitly // workaround of weakness of Scala 2 compiler
+    import ru.buzden.util.numeric.instances.numericAdditiveMonoid // for Semigroup[P]
 
     // todo to treat function DFDs in the lazy manner (if it's possible)
     override def map[A, B](fa: DFD[A])(f: A => B): DFD[B] = {
