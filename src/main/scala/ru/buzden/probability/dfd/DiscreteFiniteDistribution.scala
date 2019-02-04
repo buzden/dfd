@@ -145,10 +145,16 @@ object DiscreteFiniteDistribution {
 
     import ru.buzden.util.numeric.instances.numericAdditiveMonoid // for Semigroup[P]
 
+    /** Builds DFD from list of possibly repeating "a"s with probabilities.
+      * It is assumed that sum of all probabilities is one.
+      */
+    private def aps2dfd[A](aps: List[(A, P)]): DFD[A] =
+      MapDFD(aps `foldMap` { Map(_) })
+
     // todo to treat function DFDs in the lazy manner (if it's possible)
     override def map[A, B](fa: DFD[A])(f: A => B): DFD[B] = {
       val ms = dfd2aps(fa) `map` { case (a, p) => (f(a), p) }
-      MapDFD(ms `foldMap` { Map(_) })
+      aps2dfd(ms)
     }
 
     // todo to treat function DFDs in the lazy manner (if it's possible)
@@ -157,7 +163,7 @@ object DiscreteFiniteDistribution {
         (a, p) <- dfd2aps(fa)
         (b, q) <- dfd2aps(f(a))
       } yield b -> p * q
-      MapDFD(ms `foldMap` { Map(_) })
+      aps2dfd(ms)
     }
 
     override def tailRecM[A, B](a: A)(f: A => DFD[A Either B]): DFD[B] = {
