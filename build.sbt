@@ -4,8 +4,8 @@ version := "0.1"
 
 scalaVersion := "2.12.8"
 
-lazy val catsVersion = "1.5.0"
-lazy val specs2Version = "4.3.6"
+lazy val catsVersion = "1.6.0"
+lazy val specs2Version = "4.4.1"
 
 // General stuff
 scalacOptions ++= Seq(
