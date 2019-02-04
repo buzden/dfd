@@ -8,11 +8,12 @@ import cats.syntax.applicativeError._
 import cats.syntax.apply._
 import cats.syntax.foldable._
 import cats.syntax.order._
-import cats.{ApplicativeError, Eq, Order}
+import cats.{ApplicativeError, Eq, Monad, Order}
 import ru.buzden.util.numeric.syntax._
 
 import scala.Fractional.Implicits._
 import scala.Integral.Implicits._
+import scala.annotation.tailrec
 
 sealed trait DiscreteFiniteDistribution[A, P] {
   /** Probability mass function.
@@ -128,4 +129,56 @@ object DiscreteFiniteDistribution {
     d1.support.forall(d2.support) && d2.support.forall(d1.support) &&
       // PMF are equal on given support
       d1.support.forall(x => d1.pmf(x) === d2.pmf(x))
+
+  // --- cats.Monad instance ---
+
+  implicit def dfdMonad[P: Probability]: Monad[DiscreteFiniteDistribution[?, P]] = new Monad[DiscreteFiniteDistribution[?, P]] {
+    /** Just a shorter type alias having the `P` type inside */
+    type DFD[X] = DiscreteFiniteDistribution[X, P]
+
+    override def pure[A](x: A): DFD[A] = FunctionDFD(Set(x), _ => one[P])
+
+    private def dfd2aps[A](dfd: DFD[A]): List[(A, P)] = dfd match {
+      case MapDFD(m) => m.toList
+      case FunctionDFD(s, f) => s.toList `map` { a => a -> f(a) }
+    }
+
+    import ru.buzden.util.numeric.instances.numericAdditiveMonoid // for Semigroup[P]
+
+    /** Builds DFD from list of possibly repeating "a"s with probabilities.
+      * It is assumed that sum of all probabilities is one.
+      */
+    private def aps2dfd[A](aps: List[(A, P)]): DFD[A] =
+      MapDFD(aps `foldMap` { Map(_) })
+
+    // todo to treat function DFDs in the lazy manner (if it's possible)
+    override def map[A, B](fa: DFD[A])(f: A => B): DFD[B] = {
+      val ms = dfd2aps(fa) `map` { case (a, p) => (f(a), p) }
+      aps2dfd(ms)
+    }
+
+    // todo to treat function DFDs in the lazy manner (if it's possible)
+    override def flatMap[A, B](fa: DFD[A])(f: A => DFD[B]): DFD[B] = {
+      val ms = for {
+        (a, p) <- dfd2aps(fa)
+        (b, q) <- dfd2aps(f(a))
+      } yield b -> p * q
+      aps2dfd(ms)
+    }
+
+    override def tailRecM[A, B](a: A)(f: A => DFD[A Either B]): DFD[B] = {
+      // todo the following can be rewritten by having List[(A Either B), P] as argument producing List[(B, P)]
+      @tailrec
+      def tailRecImpl(curr: DFD[A Either B]): DFD[B] =
+        if (curr.support `forall` { _.isRight }) map(curr)(_.toOption.get)
+        else {
+          val next = flatMap(curr) {
+            case r@Right(_) => pure(r: A Either B)
+            case Left(aa) => f(aa)
+          }
+          tailRecImpl(next)
+        }
+      tailRecImpl(f(a))
+    }
+  }
 }

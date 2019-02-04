@@ -4,6 +4,8 @@ import cats.Apply
 import cats.data.Validated.Valid
 import cats.data.{NonEmptySet, ValidatedNel}
 import cats.kernel.laws.discipline.EqTests
+import cats.laws.discipline.MonadTests
+import cats.laws.discipline.SemigroupalTests.Isomorphisms
 import cats.syntax.eq._
 import org.scalacheck.Arbitrary.arbitrary
 import org.scalacheck.Gen.chooseNum
@@ -11,6 +13,7 @@ import org.scalacheck.Prop.forAllNoShrink
 import org.scalacheck.cats.implicits._
 import org.scalacheck.{Arbitrary, Cogen, Gen}
 import org.specs2.matcher.MatchResult
+import org.specs2.specification.ExamplesTimeout
 import org.specs2.{ScalaCheck, Specification}
 import org.typelevel.discipline.specs2.Discipline
 import ru.buzden.probability.dfd.DiscreteFiniteDistribution._
@@ -21,7 +24,7 @@ import spire.math.{Rational, SafeLong}
 import scala.collection.immutable.SortedSet
 
 //noinspection TypeAnnotation
-object DFDSpec extends Specification with ScalaCheck with Discipline { def is = s2"""
+object DFDSpec extends Specification with ScalaCheck with Discipline with ExamplesTimeout { def is = s2"""
   correctness of creation and created distributions
     general cases
       ${normalizedMapCase[String].fragments}
@@ -41,14 +44,20 @@ object DFDSpec extends Specification with ScalaCheck with Discipline { def is = 
       on eagerization                                                        ${preserves[SafeLong](eagerify)}
       on lazification                                                        ${preserves[SafeLong](lazify)}
   $eqLaws
+  $monadLaws
   """
 
   type V[A] = ValidatedNel[String, A]
 
-  // --- Thing-in-ifself-like checks ---
+  // --- Thing-in-itself-like checks ---
 
-  def eqLaws = checkAll("DiscreteFiniteDistribution",
+  def eqLaws = checkAll("discrete finite distribution",
     EqTests[DiscreteFiniteDistribution[SafeLong, Rational]].eqv
+  )
+
+  type DfdRational[A] = DiscreteFiniteDistribution[A, Rational] // This type is a workaround of compiler bug
+  def monadLaws(implicit wtf: Isomorphisms[DfdRational]) = checkAll("discrete finite distribution",
+    MonadTests[DfdRational].monad[SafeLong, String, SafeLong]
   )
 
   // --- Particular DFD generation and checks cases ---
@@ -258,4 +267,12 @@ object DFDSpec extends Specification with ScalaCheck with Discipline { def is = 
     hypergeometricCase.genD,
     uniformCase[SafeLong].genD,
   ))
+
+  implicit def arbDfdAny[A: Arbitrary:Cogen]: Arbitrary[DiscreteFiniteDistribution[A, Rational]] =
+    Arbitrary(Gen.oneOf(
+      normalizedMapCase[A].genD,
+      supportAndPmfCase[A].genD,
+      proportionalCase[A].genD,
+      unnormalizedCase[A].genD,
+    ))
 }
