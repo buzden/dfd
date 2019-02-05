@@ -13,7 +13,6 @@ import org.scalacheck.Prop.forAllNoShrink
 import org.scalacheck.cats.implicits._
 import org.scalacheck.{Arbitrary, Cogen, Gen}
 import org.specs2.matcher.MatchResult
-import org.specs2.specification.ExamplesTimeout
 import org.specs2.{ScalaCheck, Specification}
 import org.typelevel.discipline.specs2.Discipline
 import ru.buzden.probability.dfd.DiscreteFiniteDistribution._
@@ -24,7 +23,7 @@ import spire.math.{Rational, SafeLong}
 import scala.collection.immutable.SortedSet
 
 //noinspection TypeAnnotation
-object DFDSpec extends Specification with ScalaCheck with Discipline with ExamplesTimeout { def is = s2"""
+object DFDSpec extends Specification with ScalaCheck with Discipline { def is = s2"""
   correctness of creation and created distributions
     general cases
       ${normalizedMapCase[String].fragments}
@@ -37,7 +36,7 @@ object DFDSpec extends Specification with ScalaCheck with Discipline with Exampl
       ${hypergeometricCase.fragments}
       ${uniformCase[String].fragments}
     relation between different distributions
-      bernouli(1/2)  == uniform for booleans                                 ${bernouliOfHalf[Int]}
+      bernouli(1/2)  == uniform for {0, 1}                                   ${bernouliOfHalf[Int]}
       binomial(1, p) == bernouli(p)                                          $binomialOfOne
       hypergeometric(N, K, 1) == bernouli(K/N)                               $hypergeometricWithN1
     preservation of support and probabilities
