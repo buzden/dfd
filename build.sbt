@@ -24,7 +24,6 @@ libraryDependencies ++= Seq(
 // Testing stuff
 libraryDependencies ++= Seq(
   "org.specs2" %% "specs2-scalacheck" % specs2Version % Test,
-  "org.specs2" %% "specs2-matcher-extra" % specs2Version % Test,
   "io.chrisdavenport" %% "cats-scalacheck" % "0.1.0" % Test,
   "org.typelevel" %% "cats-laws" % catsVersion % Test,
   "org.typelevel" %% "discipline" % "0.11.0" % Test, // todo to remove as soon as this or newer comes as dep.

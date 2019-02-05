@@ -13,7 +13,6 @@ import org.scalacheck.Prop.forAllNoShrink
 import org.scalacheck.cats.implicits._
 import org.scalacheck.{Arbitrary, Cogen, Gen}
 import org.specs2.matcher.MatchResult
-import org.specs2.specification.ExamplesTimeout
 import org.specs2.{ScalaCheck, Specification}
 import org.typelevel.discipline.specs2.Discipline
 import ru.buzden.probability.dfd.DiscreteFiniteDistribution._
@@ -24,7 +23,7 @@ import spire.math.{Rational, SafeLong}
 import scala.collection.immutable.SortedSet
 
 //noinspection TypeAnnotation
-object DFDSpec extends Specification with ScalaCheck with Discipline with ExamplesTimeout { def is = s2"""
+object DFDSpec extends Specification with ScalaCheck with Discipline { def is = s2"""
   correctness of creation and created distributions
     general cases
       ${normalizedMapCase[String].fragments}
