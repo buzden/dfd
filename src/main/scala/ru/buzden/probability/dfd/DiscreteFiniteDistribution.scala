@@ -168,8 +168,7 @@ object DiscreteFiniteDistribution {
 
     override def tailRecM[A, B](a: A)(f: A => DFD[A Either B]): DFD[B] = {
       // todo the following can be rewritten by having List[(A Either B), P] as argument producing List[(B, P)]
-      @tailrec
-      def tailRecImpl(curr: DFD[A Either B]): DFD[B] =
+      @tailrec def tailRecImpl(curr: DFD[A Either B]): DFD[B] =
         if (curr.support `forall` { _.isRight }) map(curr)(_.toOption.get)
         else {
           val next = flatMap(curr) {
