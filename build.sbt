@@ -30,3 +30,4 @@ libraryDependencies ++= Seq(
 )
 scalacOptions in Test += "-Yrangepos"
 logBuffered in Test := false
+testOptions in Test += Tests.Argument("showtimes")
