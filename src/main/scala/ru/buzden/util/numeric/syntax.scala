@@ -1,7 +1,7 @@
 package ru.buzden.util.numeric
 
-import cats.{Eq, Order}
 import cats.syntax.eq._
+import ru.buzden.util.numeric.instances.scala2catsOrdering
 
 import scala.Ordering.Implicits._
 
@@ -24,9 +24,6 @@ object syntax {
 
     def sqr(implicit N: Numeric[N]): N = n * n
   }
-
-  // todo to unite this implicit declaration with those in the `dfd` package object.
-  private[this] implicit def scala2catsOrdering[A: Ordering]: Eq[A] = Order.fromOrdering
 
   implicit class FractionalPowSyntax[N](val n: N) extends AnyVal {
     import scala.Fractional.Implicits._
