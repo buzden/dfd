@@ -18,7 +18,6 @@ package object testing {
 
   def nonNegNum[N: Numeric:Choose]: Gen[N] = frequency(1 -> zero[N], 99 -> posNum[N])
 
-  // Implementation intentionally generates pretty small values (for testing speed)
   def rational(numerator: Gen[SafeLongGen]): Gen[Rational] = (numerator, posNum[SafeLongGen]).mapN { Rational(_, _) }
 
   val posRational: Gen[Rational] = rational(posNum[SafeLongGen])
@@ -84,7 +83,6 @@ package object testing {
     override def toDouble(x: SafeLong): Double = x.toDouble
   }
 
-  // Implementation intentionally generates pretty small values (for testing speed)
   implicit val arbSafeLong: Arbitrary[SafeLong] = Arbitrary(arbitrary[SafeLongGen] `map` { SafeLong(_) } )
   implicit val cogenSafeLong: Cogen[SafeLong] = Cogen.cogenLong.contramap(_.toLong)
   implicit val cogenRational: Cogen[Rational] = cogenSafeLong.contramap { r => r.numerator + r.denominator }
