@@ -106,17 +106,6 @@ package object testing {
 
   implicit val chooseSafeLong: Choose[SafeLong] = Choose.xmap(SafeLong(_:BigInt), _.toBigInt)
 
-  // a_min * b_min <= x / y <= a_max / b_max
-  // assuming denominators to be positive,
-  // a_min * b_max * y <= b_min * b_max * x <= a_max * b_min * y
-  //
-  // This implementation assumes that Rational's denominators are positive
-  implicit val chooseRational: Choose[Rational] = (min, max) => for {
-    // Implementation intentionally generates pretty small values (for testing speed)
-    y <- Gen.posNum[SafeLongGen].map(x => SafeLong(x.toLong))
-    u <- Gen.chooseNum(min.numerator * max.denominator * y, max.numerator * min.denominator * y)
-  } yield Rational(u, y * min.denominator * max.denominator)
-
   // todo to do this with contramap when it's possible
   implicit def dfdDiffable[A, P]: Diffable[DiscreteFiniteDistribution[A, P]] = { (actual, expected) =>
     def dfd2map(dfd: DiscreteFiniteDistribution[A, P]): Map[A, P] =
