@@ -25,6 +25,7 @@ object syntax {
     def sqr(implicit N: Numeric[N]): N = n * n
   }
 
+  // todo to unite this implicit declaration with those in the `dfd` package object.
   private[this] implicit def scala2catsOrdering[A: Ordering]: Eq[A] = Order.fromOrdering
 
   implicit class FractionalPowSyntax[N](val n: N) extends AnyVal {
