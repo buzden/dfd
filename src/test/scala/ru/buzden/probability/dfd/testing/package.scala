@@ -4,23 +4,32 @@ import cats.data.Validated
 import cats.syntax.apply._
 import cats.syntax.eq._
 import org.scalacheck.Arbitrary.arbitrary
-import org.scalacheck.{Arbitrary, Cogen, Gen}
 import org.scalacheck.Gen._
 import org.scalacheck.cats.implicits._
+import org.scalacheck.{Arbitrary, Cogen, Gen}
 import org.specs2.matcher.describe.Diffable
-import ru.buzden.util.numeric.syntax.{one, zero}
+import ru.buzden.util.numeric.syntax.zero
 import spire.math.{Rational, SafeLong}
 
 package object testing {
+  type SafeLongGen = Short
+  def positivePowerOf2: Gen[SafeLongGen] = chooseNum(0, 14) `map` (1 << _) `map` (_.toShort)
+
   // --- Gen-related utility functions ---
 
   def nonNegNum[N: Numeric:Choose]: Gen[N] = frequency(1 -> zero[N], 99 -> posNum[N])
 
-  def rational(numerator: Gen[Long]): Gen[Rational] = (numerator, posNum[Long]).mapN(Rational.apply)
+  // standard denominator for this test set
+  def denominator: Gen[SafeLongGen] = positivePowerOf2
 
-  val posRational: Gen[Rational] = rational(posNum[Long])
-  val nonNegRational: Gen[Rational] = rational(nonNegNum[Long])
-  def between0and1[N: Numeric:Choose]: Gen[N] = chooseNum(zero[N], one[N])
+  def rational(numerator: Gen[SafeLongGen]): Gen[Rational] = (numerator, denominator).mapN { Rational(_, _) }
+
+  val posRational: Gen[Rational] = rational(posNum[SafeLongGen])
+  val nonNegRational: Gen[Rational] = rational(nonNegNum[SafeLongGen])
+  def between0and1: Gen[Rational] = for {
+    den <- denominator
+    num <- choose(zero[SafeLongGen], den)
+  } yield Rational(num, den)
 
   def listOfNWithNonZero[A: Numeric](n: Int, genA: Gen[A]): Gen[List[A]] =
     listOfN(n, genA) `suchThat` { _.exists(_ =!= zero[A]) }
@@ -78,10 +87,7 @@ package object testing {
     override def toDouble(x: SafeLong): Double = x.toDouble
   }
 
-  implicit val arbSafeLong: Arbitrary[SafeLong] = Arbitrary(Gen.oneOf(
-    arbitrary[Long].map(SafeLong(_)),
-    arbitrary[BigInt].map(SafeLong(_)),
-  ))
+  implicit val arbSafeLong: Arbitrary[SafeLong] = Arbitrary(arbitrary[SafeLongGen] `map` { SafeLong(_) } )
   implicit val cogenSafeLong: Cogen[SafeLong] = Cogen.cogenLong.contramap(_.toLong)
   implicit val cogenRational: Cogen[Rational] = cogenSafeLong.contramap { r => r.numerator + r.denominator }
 
@@ -101,16 +107,6 @@ package object testing {
   }
 
   implicit val chooseSafeLong: Choose[SafeLong] = Choose.xmap(SafeLong(_:BigInt), _.toBigInt)
-
-  // a_min * b_min <= x / y <= a_max / b_max
-  // assuming denominators to be positive,
-  // a_min * b_max * y <= b_min * b_max * x <= a_max * b_min * y
-  //
-  // This implementation assumes that Rational's denominators are positive
-  implicit val chooseRational: Choose[Rational] = (min, max) => for {
-    y <- Gen.posNum[SafeLong]
-    u <- Gen.chooseNum(min.numerator * max.denominator * y, max.numerator * min.denominator * y)
-  } yield Rational(u, y * min.denominator * max.denominator)
 
   // todo to do this with contramap when it's possible
   implicit def dfdDiffable[A, P]: Diffable[DiscreteFiniteDistribution[A, P]] = { (actual, expected) =>

@@ -143,7 +143,7 @@ object DFDSpec extends Specification with ScalaCheck with Discipline { def is = 
 
   def bernouliCase[N: Numeric] = TestCase[N, Rational, Rational](
     caseName = "bernouli",
-    distrParameters = between0and1[Rational],
+    distrParameters = between0and1,
     createDfd = bernouli[N, Rational, V],
     checkSupport = (_, support) => support must not be empty,
     checkProbabilities = { (p, d) =>
@@ -160,7 +160,7 @@ object DFDSpec extends Specification with ScalaCheck with Discipline { def is = 
     else (0 to n).toSet
   lazy val binomialCase = TestCase[SafeLong, Rational, (Int, Rational)](
     caseName = "binomial",
-    distrParameters = Apply[Gen].product(nonNegNum[Int], between0and1[Rational]),
+    distrParameters = Apply[Gen].product(nonNegNum[Int], between0and1),
     createDfd = { case (n, p) => binomial[SafeLong, Rational, V](SafeLong(n), p) },
     checkSupport = (np, support) => support ==== binomialSupport(np._1, np._2).map { SafeLong(_:Int) },
     checkProbabilities = { case ((n, p), d) =>
@@ -202,7 +202,7 @@ object DFDSpec extends Specification with ScalaCheck with Discipline { def is = 
   def bernouliOfHalf[N: Numeric] =
     bernouli[N, Rational, V](Rational(1, 2)) ==== Valid(uniform(NonEmptySet.of(zero[N], one[N])))
 
-  def binomialOfOne = forAllNoShrink(between0and1[Rational]) { p =>
+  def binomialOfOne = forAllNoShrink(between0and1) { p =>
     binomial[SafeLong, Rational, V](one[SafeLong], p) ==== bernouli[SafeLong, Rational, V](p)
   }
 
@@ -256,14 +256,14 @@ object DFDSpec extends Specification with ScalaCheck with Discipline { def is = 
 
   // --- Putting all cases together ---
 
+  // Binomial and hypergeometric were put out intentionally.
+  // With them it took too long in monad tests because of much work with `BigInt`ed rationals.
   implicit lazy val arbDfdIR: Arbitrary[DiscreteFiniteDistribution[SafeLong, Rational]] = Arbitrary(Gen.oneOf(
     normalizedMapCase[SafeLong].genD,
     supportAndPmfCase[SafeLong].genD,
     proportionalCase[SafeLong].genD,
     unnormalizedCase[SafeLong].genD,
     bernouliCase[SafeLong].genD,
-    binomialCase.genD,
-    hypergeometricCase.genD,
     uniformCase[SafeLong].genD,
   ))
 
