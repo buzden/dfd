@@ -42,14 +42,13 @@ package object dfd {
 
   // --- Instances for testing ---
 
-  implicit val arbSafeLong: Arbitrary[SafeLong] = Arbitrary(arbitrary[SafeLongGen] `map` { SafeLong(_) } )
+  implicit val arbSafeLong: Arbitrary[SafeLong] = Arbitrary(arbitrary[SafeLongGen] `map` { SafeLong(_) })
 
   implicit def cogen4dfd[A: Cogen:Ordering, P: Cogen]: Cogen[DiscreteFiniteDistribution[A, P]] =
     Cogen.cogenVector[(A, P)].contramap { dfd =>
       dfd.support.toVector.sorted.map(a => (a, dfd.pmf(a)))
     }
 
-  // todo to do this with contramap when it's possible
   implicit def dfdDiffable[A, P]: Diffable[DiscreteFiniteDistribution[A, P]] = { (actual, expected) =>
     def dfd2map(dfd: DiscreteFiniteDistribution[A, P]): Map[A, P] =
       Map(dfd.support.toList.map(a => (a, dfd.pmf(a))):_*)
