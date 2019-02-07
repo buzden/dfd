@@ -13,17 +13,21 @@ import spire.math.{Rational, SafeLong}
 
 package object testing {
   type SafeLongGen = Short
+  def positivePowerOf2: Gen[SafeLongGen] = chooseNum(0, 14) `map` (1 << _) `map` (_.toShort)
 
   // --- Gen-related utility functions ---
 
   def nonNegNum[N: Numeric:Choose]: Gen[N] = frequency(1 -> zero[N], 99 -> posNum[N])
 
-  def rational(numerator: Gen[SafeLongGen]): Gen[Rational] = (numerator, posNum[SafeLongGen]).mapN { Rational(_, _) }
+  // standard denominator for this test set
+  def denominator: Gen[SafeLongGen] = positivePowerOf2
+
+  def rational(numerator: Gen[SafeLongGen]): Gen[Rational] = (numerator, denominator).mapN { Rational(_, _) }
 
   val posRational: Gen[Rational] = rational(posNum[SafeLongGen])
   val nonNegRational: Gen[Rational] = rational(nonNegNum[SafeLongGen])
   def between0and1: Gen[Rational] = for {
-    den <- posNum[SafeLongGen]
+    den <- denominator
     num <- choose(zero[SafeLongGen], den)
   } yield Rational(num, den)
 
