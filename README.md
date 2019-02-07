@@ -2,21 +2,22 @@
 
 [![Build status](https://travis-ci.com/buzden/dfd.svg)](https://travis-ci.com/buzden/dfd)
 [![Code coverage](https://codecov.io/github/buzden/dfd/coverage.svg?branch=master)](https://codecov.io/github/buzden/dfd)
-[![Cats friendly](https://typelevel.org/cats/img/cats-badge-tiny.png)](https://typelevel.org/cats)
 
 ### Overview
 
 The main goal of this library is to provide a data structure that can represent a probability distribution of (more or less) arbitrary objects.
-This data structure should have the following properties:
+Desired data structure should have the following properties:
 
-- observability the whole distribution, i.e. having an ability not get probabilities not only by sampling;
+- observability the whole distribution, i.e. having an ability to get probabilities not only by sampling;
 - ability of precise probability values (not only with `Double`s);
-- unability to represent incorrect distributions (e.g. when sum of probabilities not equal to one);
+- unability to represent incorrect distributions (e.g. when sum of probabilities is not equal to one);
 - ability to combine computations which have distribution as a result;
 - purity, e.g. support of the *purely functional* fashion of programming;
-- representability as an *effect* (in wide sense of effect in pure functional programming).
+- representability as an *effect* (in the wide sense of effect in pure functional programming).
 
 Some of these properties require us to consider only *finite* and *discrete* probability distributions.
+
+[![Cats friendly](https://typelevel.org/cats/img/cats-badge-tiny.png)](https://typelevel.org/cats)
 
 ### Installation
 
