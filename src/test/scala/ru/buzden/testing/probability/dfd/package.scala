@@ -1,4 +1,5 @@
-package ru.buzden.testing.probability
+package ru.buzden.testing
+package probability
 
 import cats.data.Validated
 import cats.syntax.apply._
