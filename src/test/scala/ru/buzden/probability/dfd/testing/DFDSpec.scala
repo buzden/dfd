@@ -256,14 +256,14 @@ object DFDSpec extends Specification with ScalaCheck with Discipline { def is = 
 
   // --- Putting all cases together ---
 
+  // Binomial and hypergeometric were put out intentionally.
+  // With them it took too long in monad tests because of much work with `BigInt`ed rationals.
   implicit lazy val arbDfdIR: Arbitrary[DiscreteFiniteDistribution[SafeLong, Rational]] = Arbitrary(Gen.oneOf(
     normalizedMapCase[SafeLong].genD,
     supportAndPmfCase[SafeLong].genD,
     proportionalCase[SafeLong].genD,
     unnormalizedCase[SafeLong].genD,
     bernouliCase[SafeLong].genD,
-    binomialCase.genD,
-    hypergeometricCase.genD,
     uniformCase[SafeLong].genD,
   ))
 
