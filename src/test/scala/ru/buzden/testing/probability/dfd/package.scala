@@ -1,4 +1,4 @@
-package ru.buzden.probability.dfd
+package ru.buzden.testing.probability
 
 import cats.data.Validated
 import cats.syntax.apply._
@@ -8,10 +8,11 @@ import org.scalacheck.Gen._
 import org.scalacheck.cats.implicits._
 import org.scalacheck.{Arbitrary, Cogen, Gen}
 import org.specs2.matcher.describe.Diffable
+import ru.buzden.probability.dfd._
 import ru.buzden.util.numeric.syntax.zero
 import spire.math.{Rational, SafeLong}
 
-package object testing {
+package object dfd {
   type SafeLongGen = Short
   def positivePowerOf2: Gen[SafeLongGen] = chooseNum(0, 14) `map` (1 << _) `map` (_.toShort)
 
