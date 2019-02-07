@@ -2,7 +2,6 @@
 
 [![Build status](https://travis-ci.com/buzden/dfd.svg)](https://travis-ci.com/buzden/dfd)
 [![Code coverage](https://codecov.io/github/buzden/dfd/coverage.svg?branch=master)](https://codecov.io/github/buzden/dfd)
-[![Cats friendly](https://typelevel.org/cats/img/cats-badge-tiny.png)](https://typelevel.org/cats)
 
 ### Overview
 
@@ -17,6 +16,8 @@ Desired data structure should have the following properties:
 - representability as an *effect* (in the wide sense of effect in pure functional programming).
 
 Some of these properties require us to consider only *finite* and *discrete* probability distributions.
+
+[![Cats friendly](https://typelevel.org/cats/img/cats-badge-tiny.png)](https://typelevel.org/cats)
 
 ### Installation
 
