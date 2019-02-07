@@ -4,9 +4,9 @@ import cats.data.Validated
 import cats.syntax.apply._
 import cats.syntax.eq._
 import org.scalacheck.Arbitrary.arbitrary
-import org.scalacheck.{Arbitrary, Cogen, Gen}
 import org.scalacheck.Gen._
 import org.scalacheck.cats.implicits._
+import org.scalacheck.{Arbitrary, Cogen, Gen}
 import org.specs2.matcher.describe.Diffable
 import ru.buzden.util.numeric.syntax.{one, zero}
 import spire.math.{Rational, SafeLong}
