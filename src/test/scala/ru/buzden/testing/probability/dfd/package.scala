@@ -9,6 +9,7 @@ import org.scalacheck.cats.implicits._
 import org.scalacheck.{Arbitrary, Cogen, Gen}
 import org.specs2.matcher.describe.Diffable
 import ru.buzden.probability.dfd._
+import ru.buzden.util.numeric.instances.scala2catsOrdering
 import ru.buzden.util.numeric.syntax.zero
 import spire.math.{Rational, SafeLong}
 

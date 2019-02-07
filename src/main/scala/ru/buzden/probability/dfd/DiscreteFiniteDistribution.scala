@@ -9,6 +9,7 @@ import cats.syntax.apply._
 import cats.syntax.foldable._
 import cats.syntax.order._
 import cats.{ApplicativeError, Eq, Monad, Order}
+import ru.buzden.util.numeric.instances.scala2catsOrdering
 import ru.buzden.util.numeric.syntax._
 
 import scala.Fractional.Implicits._

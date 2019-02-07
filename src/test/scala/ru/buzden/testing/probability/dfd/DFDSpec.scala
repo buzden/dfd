@@ -18,6 +18,7 @@ import org.specs2.{ScalaCheck, Specification}
 import org.typelevel.discipline.specs2.Discipline
 import ru.buzden.probability.dfd.DiscreteFiniteDistribution._
 import ru.buzden.probability.dfd._
+import ru.buzden.util.numeric.instances.scala2catsOrdering
 import ru.buzden.util.numeric.syntax.{one, zero}
 import spire.math.{Rational, SafeLong}
 
