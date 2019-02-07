@@ -16,10 +16,11 @@ package object testing {
 
   def nonNegNum[N: Numeric:Choose]: Gen[N] = frequency(1 -> zero[N], 99 -> posNum[N])
 
-  def rational(numerator: Gen[Long]): Gen[Rational] = (numerator, posNum[Long]).mapN(Rational.apply)
+  // Implementation intentionally generates pretty small values (for testing speed)
+  def rational(numerator: Gen[Short]): Gen[Rational] = (numerator, posNum[Short]).mapN { Rational(_, _) }
 
-  val posRational: Gen[Rational] = rational(posNum[Long])
-  val nonNegRational: Gen[Rational] = rational(nonNegNum[Long])
+  val posRational: Gen[Rational] = rational(posNum[Short])
+  val nonNegRational: Gen[Rational] = rational(nonNegNum[Short])
   def between0and1[N: Numeric:Choose]: Gen[N] = chooseNum(zero[N], one[N])
 
   def listOfNWithNonZero[A: Numeric](n: Int, genA: Gen[A]): Gen[List[A]] =
@@ -78,10 +79,8 @@ package object testing {
     override def toDouble(x: SafeLong): Double = x.toDouble
   }
 
-  implicit val arbSafeLong: Arbitrary[SafeLong] = Arbitrary(Gen.oneOf(
-    arbitrary[Long].map(SafeLong(_)),
-    arbitrary[BigInt].map(SafeLong(_)),
-  ))
+  // Implementation intentionally generates pretty small values (for testing speed)
+  implicit val arbSafeLong: Arbitrary[SafeLong] = Arbitrary(arbitrary[Short] `map` { SafeLong(_) } )
   implicit val cogenSafeLong: Cogen[SafeLong] = Cogen.cogenLong.contramap(_.toLong)
   implicit val cogenRational: Cogen[Rational] = cogenSafeLong.contramap { r => r.numerator + r.denominator }
 
@@ -108,7 +107,8 @@ package object testing {
   //
   // This implementation assumes that Rational's denominators are positive
   implicit val chooseRational: Choose[Rational] = (min, max) => for {
-    y <- Gen.posNum[SafeLong]
+    // Implementation intentionally generates pretty small values (for testing speed)
+    y <- Gen.posNum[Short].map(x => SafeLong(x.toLong))
     u <- Gen.chooseNum(min.numerator * max.denominator * y, max.numerator * min.denominator * y)
   } yield Rational(u, y * min.denominator * max.denominator)
 
