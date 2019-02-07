@@ -12,15 +12,17 @@ import ru.buzden.util.numeric.syntax.{one, zero}
 import spire.math.{Rational, SafeLong}
 
 package object testing {
+  type SafeLongGen = Short
+
   // --- Gen-related utility functions ---
 
   def nonNegNum[N: Numeric:Choose]: Gen[N] = frequency(1 -> zero[N], 99 -> posNum[N])
 
   // Implementation intentionally generates pretty small values (for testing speed)
-  def rational(numerator: Gen[Short]): Gen[Rational] = (numerator, posNum[Short]).mapN { Rational(_, _) }
+  def rational(numerator: Gen[SafeLongGen]): Gen[Rational] = (numerator, posNum[SafeLongGen]).mapN { Rational(_, _) }
 
-  val posRational: Gen[Rational] = rational(posNum[Short])
-  val nonNegRational: Gen[Rational] = rational(nonNegNum[Short])
+  val posRational: Gen[Rational] = rational(posNum[SafeLongGen])
+  val nonNegRational: Gen[Rational] = rational(nonNegNum[SafeLongGen])
   def between0and1[N: Numeric:Choose]: Gen[N] = chooseNum(zero[N], one[N])
 
   def listOfNWithNonZero[A: Numeric](n: Int, genA: Gen[A]): Gen[List[A]] =
@@ -80,7 +82,7 @@ package object testing {
   }
 
   // Implementation intentionally generates pretty small values (for testing speed)
-  implicit val arbSafeLong: Arbitrary[SafeLong] = Arbitrary(arbitrary[Short] `map` { SafeLong(_) } )
+  implicit val arbSafeLong: Arbitrary[SafeLong] = Arbitrary(arbitrary[SafeLongGen] `map` { SafeLong(_) } )
   implicit val cogenSafeLong: Cogen[SafeLong] = Cogen.cogenLong.contramap(_.toLong)
   implicit val cogenRational: Cogen[Rational] = cogenSafeLong.contramap { r => r.numerator + r.denominator }
 
@@ -108,7 +110,7 @@ package object testing {
   // This implementation assumes that Rational's denominators are positive
   implicit val chooseRational: Choose[Rational] = (min, max) => for {
     // Implementation intentionally generates pretty small values (for testing speed)
-    y <- Gen.posNum[Short].map(x => SafeLong(x.toLong))
+    y <- Gen.posNum[SafeLongGen].map(x => SafeLong(x.toLong))
     u <- Gen.chooseNum(min.numerator * max.denominator * y, max.numerator * min.denominator * y)
   } yield Rational(u, y * min.denominator * max.denominator)
 
