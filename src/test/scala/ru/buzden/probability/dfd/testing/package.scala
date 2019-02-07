@@ -8,7 +8,7 @@ import org.scalacheck.Gen._
 import org.scalacheck.cats.implicits._
 import org.scalacheck.{Arbitrary, Cogen, Gen}
 import org.specs2.matcher.describe.Diffable
-import ru.buzden.util.numeric.syntax.{one, zero}
+import ru.buzden.util.numeric.syntax.zero
 import spire.math.{Rational, SafeLong}
 
 package object testing {
@@ -23,7 +23,10 @@ package object testing {
 
   val posRational: Gen[Rational] = rational(posNum[SafeLongGen])
   val nonNegRational: Gen[Rational] = rational(nonNegNum[SafeLongGen])
-  def between0and1[N: Numeric:Choose]: Gen[N] = chooseNum(zero[N], one[N])
+  def between0and1: Gen[Rational] = for {
+    den <- posNum[SafeLongGen]
+    num <- choose(zero[SafeLongGen], den)
+  } yield Rational(num, den)
 
   def listOfNWithNonZero[A: Numeric](n: Int, genA: Gen[A]): Gen[List[A]] =
     listOfN(n, genA) `suchThat` { _.exists(_ =!= zero[A]) }
