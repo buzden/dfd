@@ -1,4 +1,5 @@
-package ru.buzden.probability.dfd.testing
+package ru.buzden.testing
+package probability.dfd
 
 import cats.Apply
 import cats.data.Validated.Valid
