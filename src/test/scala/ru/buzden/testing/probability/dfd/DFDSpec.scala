@@ -37,6 +37,10 @@ object DFDSpec extends Specification with ScalaCheck with Discipline { def is = 
       ${binomialCase.fragments}
       ${hypergeometricCase.fragments}
       ${uniformCase[String].fragments}
+    distributions after operations
+      $mappedCase
+      $flatmappedArbyCase
+      $flatmappedUniCase
     relation between different distributions
       bernouli(1/2)  == uniform for {0, 1}                                   ${bernouliOfHalf[Int]}
       binomial(1, p) == bernouli(p)                                          $binomialOfOne
@@ -200,6 +204,16 @@ object DFDSpec extends Specification with ScalaCheck with Discipline { def is = 
       d.support.toList `map` (d.pmf(_) ==== expectedP) `reduce` (_ and _)
     }
   )
+
+  // --- Cases of distributions got after particular operations ---
+
+  def mappedCase = pending
+
+  def flatmappedArbyCase = pending
+
+  def flatmappedUniCase = pending
+
+  // --- Tests on relations between particular ones ---
 
   def bernouliOfHalf[N: Numeric] =
     bernouli[N, Rational, V](Rational(1, 2)) ==== Valid(uniform(NonEmptySet.of(zero[N], one[N])))
