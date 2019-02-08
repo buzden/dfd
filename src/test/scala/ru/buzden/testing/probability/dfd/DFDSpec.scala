@@ -45,7 +45,8 @@ object DFDSpec extends Specification with ScalaCheck with Discipline { def is = 
     distributions after operations
       ${mappedCase[String, Int].fragments}
       ${flatmappedArbyCase[String, Int].fragments}
-      $flatmappedUniCase
+      ${flatmappedUniCase[Int].fragments}
+      ${flatmappedSelfCase[String].fragments}
     relation between different distributions
       bernouli(1/2)  == uniform for {0, 1}                                   ${bernouliOfHalf[Int]}
       binomial(1, p) == bernouli(p)                                          $binomialOfOne
@@ -254,7 +255,26 @@ object DFDSpec extends Specification with ScalaCheck with Discipline { def is = 
     },
   )
 
-  def flatmappedUniCase = pending
+  def flatmappedUniCase[A: Arbitrary:Cogen:Ordering] = mappedLike[A, A, A](
+    caseName = "flatMapping by constantly uniform distribution",
+    testedOp = (dfd, _) => dfd `flatMap` { _ => uniform(NonEmptySet.fromSetUnsafe(SortedSet(dfd.support.toList:_*))) },
+    expectedSupport = (dfd, _) => dfd.support,
+    expectedProbabilities = (dfd, _) => {
+      import ru.buzden.util.numeric.instances.numericAdditiveMonoid
+      val p = Rational(1, dfd.support.size)
+      dfd.support.toList `foldMap` { a => Map(a -> p) }
+    },
+  )
+
+  def flatmappedSelfCase[A: Arbitrary:Cogen] = mappedLike[A, A, A](
+    caseName = "flatMapping by itself",
+    testedOp = (dfd, _) => dfd `flatMap` { _ => dfd },
+    expectedSupport = (dfd, _) => dfd.support,
+    expectedProbabilities = (dfd, _) => {
+      import ru.buzden.util.numeric.instances.numericAdditiveMonoid
+      dfd.support.toList `foldMap` { a => Map(a -> dfd.pmf(a)) }
+    },
+  )
 
   // --- Tests on relations between particular ones ---
 
