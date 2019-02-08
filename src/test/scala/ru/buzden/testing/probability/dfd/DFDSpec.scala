@@ -11,6 +11,7 @@ import cats.laws.discipline.MonadTests
 import cats.laws.discipline.SemigroupalTests.Isomorphisms
 import cats.syntax.eq._
 import cats.syntax.foldable._
+import cats.syntax.flatMap._
 import cats.syntax.functor._
 import org.scalacheck.Arbitrary.arbitrary
 import org.scalacheck.Gen.chooseNum
@@ -43,7 +44,7 @@ object DFDSpec extends Specification with ScalaCheck with Discipline { def is = 
       ${uniformCase[String].fragments}
     distributions after operations
       ${mappedCase[String, Int].fragments}
-      $flatmappedArbyCase
+      ${flatmappedArbyCase[String, Int].fragments}
       $flatmappedUniCase
     relation between different distributions
       bernouli(1/2)  == uniform for {0, 1}                                   ${bernouliOfHalf[Int]}
@@ -225,7 +226,21 @@ object DFDSpec extends Specification with ScalaCheck with Discipline { def is = 
     },
   )
 
-  def flatmappedArbyCase = pending
+  def flatmappedArbyCase[A: Arbitrary:Cogen, B: Arbitrary:Cogen] = TestCase[B, Rational, (DFD[A], A => DFD[B])](
+    caseName = "flatMapping by arbitrary function",
+    distrParameters = Apply[Gen].product(arbitrary[DFD[A]], arbitrary[A => DFD[B]]),
+    createDfd = { case (dfd, f) => Valid(dfd `flatMap` f) },
+    checkSupport = { case ((dfd, f), support) => support ==== dfd.support.flatMap(f(_).support) },
+    checkProbabilities = { case ((original, f), mapped) =>
+      import ru.buzden.util.numeric.instances.numericAdditiveMonoid
+      val expectedP: Map[B, Rational] = original.support.toList `foldMap` { a =>
+        val pOfA = original.pmf(a)
+        val dfdB = f(a)
+        dfdB.support.toList `foldMap` { b => Map(b -> dfdB.pmf(b) * pOfA ) }
+      }
+      mapped.support.toList `map` (b => Option(mapped.pmf(b)) ==== expectedP.get(b)) `reduce` (_ and _)
+    },
+  )
 
   def flatmappedUniCase = pending
 
