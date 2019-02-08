@@ -214,13 +214,13 @@ object DFDSpec extends Specification with ScalaCheck with Discipline { def is = 
   // --- Cases of distributions got after particular operations ---
 
   def mappedCase[A: Arbitrary:Cogen, B: Arbitrary] = TestCase[B, Rational, (DFD[A], A => B)](
-    caseName = "dfd mapped by arbitrary function",
+    caseName = "mapping by arbitrary function",
     distrParameters = Apply[Gen].product(arbitrary[DFD[A]], arbitrary[A => B]),
     createDfd = { case (dfd, f) => Valid(dfd `map` f) },
     checkSupport = { case ((dfd, f), support) => support ==== dfd.support.map(f) },
     checkProbabilities = { case ((original, f), mapped) =>
       import ru.buzden.util.numeric.instances.numericAdditiveMonoid
-      val expectedP: Map[B, Rational] = original.support.toList `foldMap` (a => Map(f(a) -> original.pmf(a)))
+      val expectedP: Map[B, Rational] = original.support.toList `foldMap` { a => Map(f(a) -> original.pmf(a)) }
       mapped.support.toList `map` (b => Option(mapped.pmf(b)) ==== expectedP.get(b)) `reduce` (_ and _)
     },
   )
