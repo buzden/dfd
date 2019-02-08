@@ -56,15 +56,18 @@ object DFDSpec extends Specification with ScalaCheck with Discipline { def is = 
   $monadLaws
   """
 
+  // --- Convenience type aliases ---
+
   type V[A] = ValidatedNel[String, A]
+  type DFD[A] = DiscreteFiniteDistribution[A, Rational]
 
   // --- Thing-in-itself-like checks ---
 
   def eqLaws = checkAll("discrete finite distribution",
-    EqTests[DiscreteFiniteDistribution[SafeLong, Rational]].eqv
+    EqTests[DFD[SafeLong]].eqv
   )
 
-  type DfdRational[A] = DiscreteFiniteDistribution[A, Rational] // This type is a workaround of compiler bug
+  type DfdRational[A] = DFD[A] // This type is a workaround of compiler bug
   def monadLaws(implicit wtf: Isomorphisms[DfdRational]) = checkAll("discrete finite distribution",
     MonadTests[DfdRational].monad[SafeLong, String, SafeLong]
   )
@@ -120,7 +123,7 @@ object DFDSpec extends Specification with ScalaCheck with Discipline { def is = 
 
   private def proportionalLike[A: Arbitrary, I: Numeric](
     caseN: String,
-    create: ((A, I), (A, I)*) => V[DiscreteFiniteDistribution[A, Rational]],
+    create: ((A, I), (A, I)*) => V[DFD[A]],
     genP: Gen[I],
     div: (I, I) => Rational,
   ) = TestCase[A, Rational, List[(A, I)]](
@@ -144,10 +147,9 @@ object DFDSpec extends Specification with ScalaCheck with Discipline { def is = 
     }
   )
 
-  def preserves[A](f: DiscreteFiniteDistribution[A, Rational] => DiscreteFiniteDistribution[A, Rational])(implicit arbD: Arbitrary[DiscreteFiniteDistribution[A, Rational]]) =
-    forAllNoShrink { dfd: DiscreteFiniteDistribution[A, Rational] =>
-      f(dfd) ==== dfd
-    }
+  def preserves[A](f: DFD[A] => DFD[A])(implicit arbD: Arbitrary[DFD[A]]) = forAllNoShrink { dfd: DFD[A] =>
+    f(dfd) ==== dfd
+  }
 
   // --- Particular distribution cases ---
 
@@ -211,8 +213,6 @@ object DFDSpec extends Specification with ScalaCheck with Discipline { def is = 
 
   // --- Cases of distributions got after particular operations ---
 
-  // The following type needs to be added due to weakness of type lambdas.
-  private type DFD[A] = DiscreteFiniteDistribution[A, Rational]
   def mappedCase[A: Arbitrary:Cogen, B: Arbitrary] = TestCase[B, Rational, (DFD[A], A => B)](
     caseName = "dfd mapped by arbitrary function",
     distrParameters = Apply[Gen].product(arbitrary[DFD[A]], arbitrary[A => B]),
@@ -290,7 +290,7 @@ object DFDSpec extends Specification with ScalaCheck with Discipline { def is = 
 
   // Binomial and hypergeometric were put out intentionally.
   // With them it took too long in monad tests because of much work with `BigInt`ed rationals.
-  implicit lazy val arbDfdIR: Arbitrary[DiscreteFiniteDistribution[SafeLong, Rational]] = Arbitrary(Gen.oneOf(
+  implicit lazy val arbDfdIR: Arbitrary[DFD[SafeLong]] = Arbitrary(Gen.oneOf(
     normalizedMapCase[SafeLong].genD,
     supportAndPmfCase[SafeLong].genD,
     proportionalCase[SafeLong].genD,
@@ -299,7 +299,7 @@ object DFDSpec extends Specification with ScalaCheck with Discipline { def is = 
     uniformCase[SafeLong].genD,
   ))
 
-  implicit def arbDfdAny[A: Arbitrary:Cogen]: Arbitrary[DiscreteFiniteDistribution[A, Rational]] =
+  implicit def arbDfdAny[A: Arbitrary:Cogen]: Arbitrary[DFD[A]] =
     Arbitrary(Gen.oneOf(
       normalizedMapCase[A].genD,
       supportAndPmfCase[A].genD,
