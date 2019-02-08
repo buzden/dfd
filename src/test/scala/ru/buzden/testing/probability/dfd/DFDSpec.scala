@@ -255,25 +255,30 @@ object DFDSpec extends Specification with ScalaCheck with Discipline { def is = 
     },
   )
 
-  def flatmappedUniCase[A: Arbitrary:Cogen:Ordering] = mappedLike[A, A, A](
-    caseName = "flatMapping by constantly uniform distribution",
-    testedOp = (dfd, _) => dfd `flatMap` { _ => uniform(NonEmptySet.fromSetUnsafe(SortedSet(dfd.support.toList:_*))) },
+  private def specialFlatmappedLike[A: Arbitrary:Cogen](
+    description: String,
+    byWhat: DFD[A] => DFD[A],
+    expectedProbability: (DFD[A], A) => Rational,
+  ) = mappedLike[A, A, A](
+    caseName = s"flatMapping by $description",
+    testedOp = (dfd, _) => dfd `flatMap` { _ => byWhat(dfd) },
     expectedSupport = (dfd, _) => dfd.support,
     expectedProbabilities = (dfd, _) => {
       import ru.buzden.util.numeric.instances.numericAdditiveMonoid
-      val p = Rational(1, dfd.support.size)
-      dfd.support.toList `foldMap` { a => Map(a -> p) }
+      dfd.support.toList `foldMap` { a => Map(a -> expectedProbability(dfd, a)) }
     },
   )
 
-  def flatmappedSelfCase[A: Arbitrary:Cogen] = mappedLike[A, A, A](
-    caseName = "flatMapping by itself",
-    testedOp = (dfd, _) => dfd `flatMap` { _ => dfd },
-    expectedSupport = (dfd, _) => dfd.support,
-    expectedProbabilities = (dfd, _) => {
-      import ru.buzden.util.numeric.instances.numericAdditiveMonoid
-      dfd.support.toList `foldMap` { a => Map(a -> dfd.pmf(a)) }
-    },
+  def flatmappedUniCase[A: Arbitrary:Cogen:Ordering] = specialFlatmappedLike[A](
+    description = "constantly uniform distribution",
+    byWhat = dfd => uniform(NonEmptySet.fromSetUnsafe(SortedSet(dfd.support.toList:_*))),
+    expectedProbability = (dfd, _) => Rational(1, dfd.support.size),
+  )
+
+  def flatmappedSelfCase[A: Arbitrary:Cogen] = specialFlatmappedLike[A](
+    description = "itself",
+    byWhat = dfd => dfd,
+    expectedProbability = (dfd, a) => dfd.pmf(a),
   )
 
   // --- Tests on relations between particular ones ---
