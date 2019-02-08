@@ -215,12 +215,12 @@ object DFDSpec extends Specification with ScalaCheck with Discipline { def is = 
   // --- Cases of distributions got after particular operations ---
 
   private def mappedLike[A: Arbitrary:Cogen, B: Arbitrary, MB: Arbitrary](
-    caseVariant: String,
+    caseName: String,
     testedOp: (DFD[A], A => MB) => DFD[B],
     expectedSupport: (DFD[A], A => MB) => Set[B],
     expectedProbabilities: (DFD[A], A => MB) => Map[B, Rational],
   ) = TestCase[B, Rational, (DFD[A], A => MB)](
-    caseName = s"$caseVariant by arbitrary function",
+    caseName = caseName,
     distrParameters = Apply[Gen].product(arbitrary[DFD[A]], arbitrary[A => MB]),
     createDfd = { case (dfd, f) => Valid(testedOp(dfd, f)) },
     checkSupport = { case ((dfd, f), support) => support ==== expectedSupport(dfd, f) },
@@ -231,7 +231,7 @@ object DFDSpec extends Specification with ScalaCheck with Discipline { def is = 
   )
 
   def mappedCase[A: Arbitrary:Cogen, B: Arbitrary] = mappedLike[A, B, B](
-    caseVariant = "mapping",
+    caseName = "mapping by arbitrary function",
     testedOp = _ map _,
     expectedSupport = (dfd, f) => dfd.support.map(f),
     expectedProbabilities = (dfd, f) => {
@@ -241,7 +241,7 @@ object DFDSpec extends Specification with ScalaCheck with Discipline { def is = 
   )
 
   def flatmappedArbyCase[A: Arbitrary:Cogen, B: Arbitrary:Cogen] = mappedLike[A, B, DFD[B]](
-    caseVariant = "flatMapping",
+    caseName = "flatMapping by arbitrary function",
     testedOp = _ flatMap _,
     expectedSupport = (dfd, f) => dfd.support.flatMap(f(_).support),
     expectedProbabilities = (dfd, f) => {
