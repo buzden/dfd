@@ -234,9 +234,9 @@ object DFDSpec extends Specification with ScalaCheck with Discipline { def is = 
     caseVariant = "mapping",
     testedOp = _ map _,
     expectedSupport = (dfd, f) => dfd.support.map(f),
-    expectedProbabilities = (original, f) => {
+    expectedProbabilities = (dfd, f) => {
       import ru.buzden.util.numeric.instances.numericAdditiveMonoid
-      original.support.toList `foldMap` { a => Map(f(a) -> original.pmf(a)) }
+      dfd.support.toList `foldMap` { a => Map(f(a) -> dfd.pmf(a)) }
     },
   )
 
@@ -244,10 +244,10 @@ object DFDSpec extends Specification with ScalaCheck with Discipline { def is = 
     caseVariant = "flatMapping",
     testedOp = _ flatMap _,
     expectedSupport = (dfd, f) => dfd.support.flatMap(f(_).support),
-    expectedProbabilities = (original, f) => {
+    expectedProbabilities = (dfd, f) => {
       import ru.buzden.util.numeric.instances.numericAdditiveMonoid
-      original.support.toList `foldMap` { a =>
-        val pOfA = original.pmf(a)
+      dfd.support.toList `foldMap` { a =>
+        val pOfA = dfd.pmf(a)
         val dfdB = f(a)
         dfdB.support.toList `foldMap` { b => Map(b -> dfdB.pmf(b) * pOfA ) }
       }
