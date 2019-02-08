@@ -214,31 +214,43 @@ object DFDSpec extends Specification with ScalaCheck with Discipline { def is = 
 
   // --- Cases of distributions got after particular operations ---
 
-  def mappedCase[A: Arbitrary:Cogen, B: Arbitrary] = TestCase[B, Rational, (DFD[A], A => B)](
-    caseName = "mapping by arbitrary function",
-    distrParameters = Apply[Gen].product(arbitrary[DFD[A]], arbitrary[A => B]),
-    createDfd = { case (dfd, f) => Valid(dfd `map` f) },
-    checkSupport = { case ((dfd, f), support) => support ==== dfd.support.map(f) },
+  private def mappedLike[A: Arbitrary:Cogen, B: Arbitrary, MB: Arbitrary](
+    caseVariant: String,
+    testedOp: (DFD[A], A => MB) => DFD[B],
+    expectedSupport: (DFD[A], A => MB) => Set[B],
+    expectedProbabilities: (DFD[A], A => MB) => Map[B, Rational],
+  ) = TestCase[B, Rational, (DFD[A], A => MB)](
+    caseName = s"$caseVariant by arbitrary function",
+    distrParameters = Apply[Gen].product(arbitrary[DFD[A]], arbitrary[A => MB]),
+    createDfd = { case (dfd, f) => Valid(testedOp(dfd, f)) },
+    checkSupport = { case ((dfd, f), support) => support ==== expectedSupport(dfd, f) },
     checkProbabilities = { case ((original, f), mapped) =>
-      import ru.buzden.util.numeric.instances.numericAdditiveMonoid
-      val expectedP: Map[B, Rational] = original.support.toList `foldMap` { a => Map(f(a) -> original.pmf(a)) }
+      val expectedP: Map[B, Rational] = expectedProbabilities(original, f)
       mapped.support.toList `map` (b => Option(mapped.pmf(b)) ==== expectedP.get(b)) `reduce` (_ and _)
     },
   )
 
-  def flatmappedArbyCase[A: Arbitrary:Cogen, B: Arbitrary:Cogen] = TestCase[B, Rational, (DFD[A], A => DFD[B])](
-    caseName = "flatMapping by arbitrary function",
-    distrParameters = Apply[Gen].product(arbitrary[DFD[A]], arbitrary[A => DFD[B]]),
-    createDfd = { case (dfd, f) => Valid(dfd `flatMap` f) },
-    checkSupport = { case ((dfd, f), support) => support ==== dfd.support.flatMap(f(_).support) },
-    checkProbabilities = { case ((original, f), mapped) =>
+  def mappedCase[A: Arbitrary:Cogen, B: Arbitrary] = mappedLike[A, B, B](
+    caseVariant = "mapping",
+    testedOp = _ map _,
+    expectedSupport = (dfd, f) => dfd.support.map(f),
+    expectedProbabilities = (original, f) => {
       import ru.buzden.util.numeric.instances.numericAdditiveMonoid
-      val expectedP: Map[B, Rational] = original.support.toList `foldMap` { a =>
+      original.support.toList `foldMap` { a => Map(f(a) -> original.pmf(a)) }
+    },
+  )
+
+  def flatmappedArbyCase[A: Arbitrary:Cogen, B: Arbitrary:Cogen] = mappedLike[A, B, DFD[B]](
+    caseVariant = "flatMapping",
+    testedOp = _ flatMap _,
+    expectedSupport = (dfd, f) => dfd.support.flatMap(f(_).support),
+    expectedProbabilities = (original, f) => {
+      import ru.buzden.util.numeric.instances.numericAdditiveMonoid
+      original.support.toList `foldMap` { a =>
         val pOfA = original.pmf(a)
         val dfdB = f(a)
         dfdB.support.toList `foldMap` { b => Map(b -> dfdB.pmf(b) * pOfA ) }
       }
-      mapped.support.toList `map` (b => Option(mapped.pmf(b)) ==== expectedP.get(b)) `reduce` (_ and _)
     },
   )
 
