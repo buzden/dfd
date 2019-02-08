@@ -4,10 +4,14 @@ package probability.dfd
 import cats.Apply
 import cats.data.Validated.Valid
 import cats.data.{NonEmptySet, ValidatedNel}
+import cats.instances.list._
+import cats.instances.map._
 import cats.kernel.laws.discipline.EqTests
 import cats.laws.discipline.MonadTests
 import cats.laws.discipline.SemigroupalTests.Isomorphisms
 import cats.syntax.eq._
+import cats.syntax.foldable._
+import cats.syntax.functor._
 import org.scalacheck.Arbitrary.arbitrary
 import org.scalacheck.Gen.chooseNum
 import org.scalacheck.Prop.forAllNoShrink
@@ -38,7 +42,7 @@ object DFDSpec extends Specification with ScalaCheck with Discipline { def is = 
       ${hypergeometricCase.fragments}
       ${uniformCase[String].fragments}
     distributions after operations
-      $mappedCase
+      ${mappedCase[String, Int].fragments}
       $flatmappedArbyCase
       $flatmappedUniCase
     relation between different distributions
@@ -207,7 +211,19 @@ object DFDSpec extends Specification with ScalaCheck with Discipline { def is = 
 
   // --- Cases of distributions got after particular operations ---
 
-  def mappedCase = pending
+  // The following type needs to be added due to weakness of type lambdas.
+  private type DFD[A] = DiscreteFiniteDistribution[A, Rational]
+  def mappedCase[A: Arbitrary:Cogen, B: Arbitrary] = TestCase[B, Rational, (DFD[A], A => B)](
+    caseName = "dfd mapped by arbitrary function",
+    distrParameters = Apply[Gen].product(arbitrary[DFD[A]], arbitrary[A => B]),
+    createDfd = { case (dfd, f) => Valid(dfd `map` f) },
+    checkSupport = { case ((dfd, f), support) => support ==== dfd.support.map(f) },
+    checkProbabilities = { case ((original, f), mapped) =>
+      import ru.buzden.util.numeric.instances.numericAdditiveMonoid
+      val expectedP: Map[B, Rational] = original.support.toList `foldMap` (a => Map(f(a) -> original.pmf(a)))
+      mapped.support.toList `map` (b => Option(mapped.pmf(b)) ==== expectedP.get(b)) `reduce` (_ and _)
+    },
+  )
 
   def flatmappedArbyCase = pending
 
