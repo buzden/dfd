@@ -4,10 +4,15 @@ package probability.dfd
 import cats.Apply
 import cats.data.Validated.Valid
 import cats.data.{NonEmptySet, ValidatedNel}
+import cats.instances.list._
+import cats.instances.map._
 import cats.kernel.laws.discipline.EqTests
 import cats.laws.discipline.MonadTests
 import cats.laws.discipline.SemigroupalTests.Isomorphisms
 import cats.syntax.eq._
+import cats.syntax.foldable._
+import cats.syntax.flatMap._
+import cats.syntax.functor._
 import org.scalacheck.Arbitrary.arbitrary
 import org.scalacheck.Gen.chooseNum
 import org.scalacheck.Prop.forAllNoShrink
@@ -37,6 +42,11 @@ object DFDSpec extends Specification with ScalaCheck with Discipline { def is = 
       ${binomialCase.fragments}
       ${hypergeometricCase.fragments}
       ${uniformCase[String].fragments}
+    distributions after operations
+      ${mappedCase[String, Int].fragments}
+      ${flatmappedArbyCase[String, Int].fragments}
+      ${flatmappedUniCase[Int].fragments}
+      ${flatmappedSelfCase[String].fragments}
     relation between different distributions
       bernouli(1/2)  == uniform for {0, 1}                                   ${bernouliOfHalf[Int]}
       binomial(1, p) == bernouli(p)                                          $binomialOfOne
@@ -48,15 +58,18 @@ object DFDSpec extends Specification with ScalaCheck with Discipline { def is = 
   $monadLaws
   """
 
+  // --- Convenience type aliases ---
+
   type V[A] = ValidatedNel[String, A]
+  type DFD[A] = DiscreteFiniteDistribution[A, Rational]
 
   // --- Thing-in-itself-like checks ---
 
   def eqLaws = checkAll("discrete finite distribution",
-    EqTests[DiscreteFiniteDistribution[SafeLong, Rational]].eqv
+    EqTests[DFD[SafeLong]].eqv
   )
 
-  type DfdRational[A] = DiscreteFiniteDistribution[A, Rational] // This type is a workaround of compiler bug
+  type DfdRational[A] = DFD[A] // This type is a workaround of compiler bug
   def monadLaws(implicit wtf: Isomorphisms[DfdRational]) = checkAll("discrete finite distribution",
     MonadTests[DfdRational].monad[SafeLong, String, SafeLong]
   )
@@ -112,7 +125,7 @@ object DFDSpec extends Specification with ScalaCheck with Discipline { def is = 
 
   private def proportionalLike[A: Arbitrary, I: Numeric](
     caseN: String,
-    create: ((A, I), (A, I)*) => V[DiscreteFiniteDistribution[A, Rational]],
+    create: ((A, I), (A, I)*) => V[DFD[A]],
     genP: Gen[I],
     div: (I, I) => Rational,
   ) = TestCase[A, Rational, List[(A, I)]](
@@ -136,10 +149,9 @@ object DFDSpec extends Specification with ScalaCheck with Discipline { def is = 
     }
   )
 
-  def preserves[A](f: DiscreteFiniteDistribution[A, Rational] => DiscreteFiniteDistribution[A, Rational])(implicit arbD: Arbitrary[DiscreteFiniteDistribution[A, Rational]]) =
-    forAllNoShrink { dfd: DiscreteFiniteDistribution[A, Rational] =>
-      f(dfd) ==== dfd
-    }
+  def preserves[A](f: DFD[A] => DFD[A])(implicit arbD: Arbitrary[DFD[A]]) = forAllNoShrink { dfd: DFD[A] =>
+    f(dfd) ==== dfd
+  }
 
   // --- Particular distribution cases ---
 
@@ -201,6 +213,76 @@ object DFDSpec extends Specification with ScalaCheck with Discipline { def is = 
     }
   )
 
+  // --- Cases of distributions got after particular operations ---
+
+  private def mappedLike[A: Arbitrary:Cogen, B: Arbitrary, MB: Arbitrary](
+    caseName: String,
+    testedOp: (DFD[A], A => MB) => DFD[B],
+    expectedSupport: (DFD[A], A => MB) => Set[B],
+    expectedProbabilities: (DFD[A], A => MB) => Map[B, Rational],
+  ) = TestCase[B, Rational, (DFD[A], A => MB)](
+    caseName = caseName,
+    distrParameters = Apply[Gen].product(arbitrary[DFD[A]], arbitrary[A => MB]),
+    createDfd = { case (dfd, f) => Valid(testedOp(dfd, f)) },
+    checkSupport = { case ((dfd, f), support) => support ==== expectedSupport(dfd, f) },
+    checkProbabilities = { case ((original, f), mapped) =>
+      val expectedP: Map[B, Rational] = expectedProbabilities(original, f)
+      mapped.support.toList `map` (b => Option(mapped.pmf(b)) ==== expectedP.get(b)) `reduce` (_ and _)
+    },
+  )
+
+  def mappedCase[A: Arbitrary:Cogen, B: Arbitrary] = mappedLike[A, B, B](
+    caseName = "mapping by arbitrary function",
+    testedOp = _ map _,
+    expectedSupport = (dfd, f) => dfd.support.map(f),
+    expectedProbabilities = (dfd, f) => {
+      import ru.buzden.util.numeric.instances.numericAdditiveMonoid
+      dfd.support.toList `foldMap` { a => Map(f(a) -> dfd.pmf(a)) }
+    },
+  )
+
+  def flatmappedArbyCase[A: Arbitrary:Cogen, B: Arbitrary:Cogen] = mappedLike[A, B, DFD[B]](
+    caseName = "flatMapping by arbitrary function",
+    testedOp = _ flatMap _,
+    expectedSupport = (dfd, f) => dfd.support.flatMap(f(_).support),
+    expectedProbabilities = (dfd, f) => {
+      import ru.buzden.util.numeric.instances.numericAdditiveMonoid
+      dfd.support.toList `foldMap` { a =>
+        val pOfA = dfd.pmf(a)
+        val dfdB = f(a)
+        dfdB.support.toList `foldMap` { b => Map(b -> dfdB.pmf(b) * pOfA ) }
+      }
+    },
+  )
+
+  private def specialFlatmappedLike[A: Arbitrary:Cogen](
+    description: String,
+    byWhat: DFD[A] => DFD[A],
+    expectedProbability: (DFD[A], A) => Rational,
+  ) = mappedLike[A, A, A](
+    caseName = s"flatMapping by $description",
+    testedOp = (dfd, _) => dfd `flatMap` { _ => byWhat(dfd) },
+    expectedSupport = (dfd, _) => dfd.support,
+    expectedProbabilities = (dfd, _) => {
+      import ru.buzden.util.numeric.instances.numericAdditiveMonoid
+      dfd.support.toList `foldMap` { a => Map(a -> expectedProbability(dfd, a)) }
+    },
+  )
+
+  def flatmappedUniCase[A: Arbitrary:Cogen:Ordering] = specialFlatmappedLike[A](
+    description = "constantly uniform distribution",
+    byWhat = dfd => uniform(NonEmptySet.fromSetUnsafe(SortedSet(dfd.support.toList:_*))),
+    expectedProbability = (dfd, _) => Rational(1, dfd.support.size),
+  )
+
+  def flatmappedSelfCase[A: Arbitrary:Cogen] = specialFlatmappedLike[A](
+    description = "itself",
+    byWhat = dfd => dfd,
+    expectedProbability = (dfd, a) => dfd.pmf(a),
+  )
+
+  // --- Tests on relations between particular ones ---
+
   def bernouliOfHalf[N: Numeric] =
     bernouli[N, Rational, V](Rational(1, 2)) ==== Valid(uniform(NonEmptySet.of(zero[N], one[N])))
 
@@ -260,7 +342,7 @@ object DFDSpec extends Specification with ScalaCheck with Discipline { def is = 
 
   // Binomial and hypergeometric were put out intentionally.
   // With them it took too long in monad tests because of much work with `BigInt`ed rationals.
-  implicit lazy val arbDfdIR: Arbitrary[DiscreteFiniteDistribution[SafeLong, Rational]] = Arbitrary(Gen.oneOf(
+  implicit lazy val arbDfdIR: Arbitrary[DFD[SafeLong]] = Arbitrary(Gen.oneOf(
     normalizedMapCase[SafeLong].genD,
     supportAndPmfCase[SafeLong].genD,
     proportionalCase[SafeLong].genD,
@@ -269,7 +351,7 @@ object DFDSpec extends Specification with ScalaCheck with Discipline { def is = 
     uniformCase[SafeLong].genD,
   ))
 
-  implicit def arbDfdAny[A: Arbitrary:Cogen]: Arbitrary[DiscreteFiniteDistribution[A, Rational]] =
+  implicit def arbDfdAny[A: Arbitrary:Cogen]: Arbitrary[DFD[A]] =
     Arbitrary(Gen.oneOf(
       normalizedMapCase[A].genD,
       supportAndPmfCase[A].genD,
