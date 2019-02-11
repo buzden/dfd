@@ -69,9 +69,8 @@ object DFDSpec extends Specification with ScalaCheck with Discipline { def is = 
     EqTests[DFD[SafeLong]].eqv
   )
 
-  type DfdRational[A] = DFD[A] // This type is a workaround of compiler bug
-  def monadLaws(implicit wtf: Isomorphisms[DfdRational]) = checkAll("discrete finite distribution",
-    MonadTests[DfdRational].monad[SafeLong, String, SafeLong]
+  def monadLaws(implicit wtf: Isomorphisms[DFD]) = checkAll("discrete finite distribution",
+    MonadTests[DFD].monad[SafeLong, String, SafeLong]
   )
 
   // --- Particular DFD generation and checks cases ---
