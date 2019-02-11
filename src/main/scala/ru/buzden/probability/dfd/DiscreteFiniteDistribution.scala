@@ -186,16 +186,33 @@ object DiscreteFiniteDistribution {
 
   final case class ProbabilisticComputation[A, B, P](comp: A => DiscreteFiniteDistribution[B, P]) extends AnyVal
 
-  implicit def dfdArrow[P: Probability] = new ArrowChoice[ProbabilisticComputation[?, ?, P]] {
+  implicit def pcompArrow[P: Probability]: ArrowChoice[ProbabilisticComputation[?, ?, P]] = new ArrowChoice[ProbabilisticComputation[?, ?, P]] {
     /** Just a shorter type alias having the `P` type inside */
     type ~=>[A, B] = ProbabilisticComputation[A, B, P]
 
-    override def lift[A, B](f: A => B): A ~=> B = ???
+    override def lift[A, B](f: A => B): A ~=> B = ProbabilisticComputation { a =>
+      FunctionDFD(Set(f(a)), _ => one[P])
+    }
 
-    override def first[A, B, C](fa: A ~=> B): (A, C) ~=> (B, C) = ???
+    // `xy` must be a reversible function and `yx` must be a reverse function for `xy`.
+    private def imap[X, Y](dfdX: DiscreteFiniteDistribution[X, P])(xy: X => Y, yx: PartialFunction[Y, X]): DiscreteFiniteDistribution[Y, P] =
+      FunctionDFD(dfdX.support `map` xy, yx `andThen` dfdX.pmf `orElse` { case _ => zero })
 
-    override def compose[A, B, C](f: B ~=> C, g: A ~=> B): A ~=> C = ???
+    override def first[A, B, C](fa: A ~=> B): (A, C) ~=> (B, C) = ProbabilisticComputation { case (a, c) =>
+      imap(fa.comp(a))(b => (b, c), { case (b, _) => b })
+    }
 
-    override def choose[A, B, C, D](f: A ~=> C)(g: B ~=> D): Either[A, B] ~=> Either[C, D] = ???
+    override def compose[A, B, C](f: B ~=> C, g: A ~=> B): A ~=> C = ProbabilisticComputation { a =>
+      val dfdB = g.comp(a)
+      val down = dfdB.support.toList `map` { b => (f.comp(b), dfdB.pmf(b)) }
+      import ru.buzden.util.numeric.instances.numericAdditiveMonoid
+      FunctionDFD(down.map(_._1.support).toSet.flatten, b => down `foldMap` { case (d, p) => d.pmf(b) * p })
+    }
+
+    override def choose[A, B, C, D](f: A ~=> C)(g: B ~=> D): Either[A, B] ~=> Either[C, D] =
+      ProbabilisticComputation {
+        case Left(a) => imap(f.comp(a))(Left(_), { case Left(c) => c })
+        case Right(b) => imap(g.comp(b))(Right(_), { case Right(d) => d })
+      }
   }
 }
