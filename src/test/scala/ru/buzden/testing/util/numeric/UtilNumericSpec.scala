@@ -11,7 +11,7 @@ import spire.math.Rational
 object UtilNumericSpec extends Specification with ScalaCheck with Discipline { def is = s2"""
   factorial(0) == 1 (Int)                                                      ${fac0[Int]}
   factorial(0) == 1 (BigInt)                                                   ${fac0[BigInt]}
-  combinations for Integral and Fractional corresponds to each other           $combinationsCorr
+  combinationsF ~= combinationsI                                               $combinationsCorr
   """
 
   def fac0[N: Numeric] = zero[N].factorial ==== one[N]
