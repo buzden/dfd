@@ -1,5 +1,6 @@
 package ru.buzden.probability.dfd
 
+import cats.arrow.ArrowChoice
 import cats.data.{NonEmptyList, NonEmptySet}
 import cats.instances.list._
 import cats.instances.map._
@@ -179,5 +180,22 @@ object DiscreteFiniteDistribution {
         }
       tailRecImpl(f(a))
     }
+  }
+
+  // --- cats.arrow.Arrow instance ---
+
+  final case class ProbabilisticComputation[A, B, P](comp: A => DiscreteFiniteDistribution[B, P]) extends AnyVal
+
+  implicit def dfdArrow[P: Probability] = new ArrowChoice[ProbabilisticComputation[?, ?, P]] {
+    /** Just a shorter type alias having the `P` type inside */
+    type ~=>[A, B] = ProbabilisticComputation[A, B, P]
+
+    override def lift[A, B](f: A => B): A ~=> B = ???
+
+    override def first[A, B, C](fa: A ~=> B): (A, C) ~=> (B, C) = ???
+
+    override def compose[A, B, C](f: B ~=> C, g: A ~=> B): A ~=> C = ???
+
+    override def choose[A, B, C, D](f: A ~=> C)(g: B ~=> D): Either[A, B] ~=> Either[C, D] = ???
   }
 }
