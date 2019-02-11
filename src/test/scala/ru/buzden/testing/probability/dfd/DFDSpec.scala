@@ -48,7 +48,7 @@ object DFDSpec extends Specification with ScalaCheck with Discipline { def is = 
       ${flatmappedUniCase[Int].fragments}
       ${flatmappedSelfCase[String].fragments}
     relation between different distributions
-      bernouli(1/2)  == uniform for {0, 1}                                   ${bernouliOfHalf[Int]}
+      bernouli(1/2) == uniform for {0, 1}                                    ${bernouliOfHalf[Int]}
       binomial(1, p) == bernouli(p)                                          $binomialOfOne
       hypergeometric(N, K, 1) == bernouli(K/N)                               $hypergeometricWithN1
     preservation of support and probabilities
