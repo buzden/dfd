@@ -1,7 +1,7 @@
 ## Discrete finite probability distributions for Scala
 
-[![Build status](https://travis-ci.com/buzden/dfd.svg?branch=master)](https://travis-ci.com/buzden/dfd)
-[![Code coverage](https://codecov.io/github/buzden/dfd/coverage.svg?branch=master)](https://codecov.io/github/buzden/dfd)
+[![Build status](https://travis-ci.com/buzden/dfd.svg?branch=master)](https://travis-ci.com/buzden/dfd/branches)
+[![Code coverage](https://codecov.io/github/buzden/dfd/coverage.svg?branch=master)](https://codecov.io/github/buzden/dfd/branch/master)
 
 ### Overview
 
