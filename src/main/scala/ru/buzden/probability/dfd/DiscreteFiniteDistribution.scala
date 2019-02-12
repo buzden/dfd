@@ -203,10 +203,7 @@ object DiscreteFiniteDistribution {
     }
 
     override def compose[A, B, C](f: B ~=> C, g: A ~=> B): A ~=> C = ProbabilisticComputation { a =>
-      val dfdB = g.comp(a)
-      val down = dfdB.support.toList `map` { b => (f.comp(b), dfdB.pmf(b)) }
-      import ru.buzden.util.numeric.instances.numericAdditiveMonoid
-      FunctionDFD(down.map(_._1.support).toSet.flatten, b => down `foldMap` { case (d, p) => d.pmf(b) * p })
+      dfdMonad.flatMap(g.comp(a))(f.comp)
     }
 
     override def choose[A, B, C, D](f: A ~=> C)(g: B ~=> D): Either[A, B] ~=> Either[C, D] =
