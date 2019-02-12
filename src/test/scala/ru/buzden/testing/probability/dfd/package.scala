@@ -15,7 +15,7 @@ import spire.math.{Rational, SafeLong}
 
 package object dfd {
   type SafeLongGen = Short
-  def positivePowerOf2: Gen[SafeLongGen] = chooseNum(0, 14) `map` (1 << _) `map` (_.toShort)
+  def positivePowerOf2: Gen[SafeLongGen] = chooseNum(0, 8) `map` (1 << _) `map` (_.toShort)
 
   // --- Gen-related utility functions ---
 

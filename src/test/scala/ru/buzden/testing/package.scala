@@ -17,7 +17,7 @@ package object testing {
 
   def nonEmptyListOfDistinct[A](genA: Gen[A]): Gen[List[A]] =
   // todo to use analogue of `.distinct` based on `cats.Eq`.
-    nonEmptyListOf(genA) `map` (_.distinct)
+    nonEmptyListOf(genA) `map` (_.distinct) `map` (_ `takeRight` 15)
 
   // --- Choose instances ---
 

@@ -1,17 +1,17 @@
 package ru.buzden.testing
 package probability.dfd
 
-import cats.Apply
+import cats.{Apply, Eq}
 import cats.data.Validated.Valid
 import cats.data.{NonEmptySet, ValidatedNel}
 import cats.instances.list._
 import cats.instances.map._
 import cats.kernel.laws.discipline.EqTests
-import cats.laws.discipline.MonadTests
 import cats.laws.discipline.SemigroupalTests.Isomorphisms
+import cats.laws.discipline.{ArrowChoiceTests, MonadTests}
 import cats.syntax.eq._
-import cats.syntax.foldable._
 import cats.syntax.flatMap._
+import cats.syntax.foldable._
 import cats.syntax.functor._
 import org.scalacheck.Arbitrary.arbitrary
 import org.scalacheck.Gen.chooseNum
@@ -56,12 +56,14 @@ object DFDSpec extends Specification with ScalaCheck with Discipline { def is = 
       on lazification                                                        ${preserves[SafeLong](lazify)}
   $eqLaws
   $monadLaws
+  $arrowLaws
   """
 
   // --- Convenience type aliases ---
 
   type V[A] = ValidatedNel[String, A]
   type DFD[A] = DiscreteFiniteDistribution[A, Rational]
+  type ~=>[A, B] = ProbabilisticComputation[A, B, Rational]
 
   // --- Thing-in-itself-like checks ---
 
@@ -71,6 +73,10 @@ object DFDSpec extends Specification with ScalaCheck with Discipline { def is = 
 
   def monadLaws(implicit wtf: Isomorphisms[DFD]) = checkAll("discrete finite distribution",
     MonadTests[DFD].monad[SafeLong, String, SafeLong]
+  )
+
+  def arrowLaws = checkAll("probabilistic computation",
+    ArrowChoiceTests[~=>].arrowChoice[Int, Long, String, Int, Long, String]
   )
 
   // --- Particular DFD generation and checks cases ---
@@ -357,4 +363,11 @@ object DFDSpec extends Specification with ScalaCheck with Discipline { def is = 
       proportionalCase[A].genD,
       unnormalizedCase[A].genD,
     ))
+
+  implicit def arbProbCompAny[A: Cogen, B: Arbitrary:Cogen]: Arbitrary[A ~=> B] = Arbitrary(
+    arbitrary[A => DFD[B]] `map` { ProbabilisticComputation(_) }
+  )
+
+  import cats.laws.discipline.eq._
+  implicit def pcompEq[A: Arbitrary, B: Arbitrary:Cogen]: Eq[A ~=> B] = Eq.by(_.comp)
 }
