@@ -23,11 +23,11 @@ libraryDependencies ++= Seq(
 
 // Testing stuff
 libraryDependencies ++= Seq(
-  "org.specs2" %% "specs2-scalacheck" % specs2Version % Test,
-  "io.chrisdavenport" %% "cats-scalacheck" % "0.1.0" % Test,
-  "org.typelevel" %% "cats-laws" % catsVersion % Test,
-  "org.typelevel" %% "discipline" % "0.11.0" % Test, // todo to remove as soon as this or newer comes as dep.
-)
+  "org.specs2" %% "specs2-scalacheck" % specs2Version,
+  "io.chrisdavenport" %% "cats-scalacheck" % "0.1.0",
+  "org.typelevel" %% "cats-laws" % catsVersion,
+  "org.typelevel" %% "discipline" % "0.11.0", // todo to remove as soon as this or newer comes as dep.
+).map(_ % Test)
 scalacOptions in Test += "-Yrangepos"
 logBuffered   in Test := false
 testOptions   in Test += Tests.Argument("showtimes")
