@@ -29,7 +29,7 @@ object syntax {
     import scala.Fractional.Implicits._
     import scala.Integral.Implicits._
 
-    // todo can be rewritten without non-tail recursion
+    // todo to rewrite with tail recursion
     def pow[K: Integral](k: K)(implicit F: Fractional[N]): N =
       if (k === zero[K]) one[N]
       else if (k < zero[K]) one[N] / pow(-k)

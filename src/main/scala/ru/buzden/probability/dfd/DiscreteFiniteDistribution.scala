@@ -24,7 +24,7 @@ sealed trait DiscreteFiniteDistribution[A, P] {
   def pmf: A => P
 
   /** Distribution's support, i.e. a set of arguments on which pmf gives non-zero */
-  def support: Set[A] // todo must be a non-empty set
+  def support: Set[A]
 
   /** Cumulative distribution function */
   def cdf(implicit O: Order[A], N: Numeric[P]): A => P = a =>
@@ -153,13 +153,11 @@ object DiscreteFiniteDistribution {
     private def aps2dfd[A](aps: List[(A, P)]): DFD[A] =
       MapDFD(aps `foldMap` { Map(_) })
 
-    // todo to treat function DFDs in the lazy manner (if it's possible)
     override def map[A, B](fa: DFD[A])(f: A => B): DFD[B] = {
       val ms = dfd2aps(fa) `map` { case (a, p) => (f(a), p) }
       aps2dfd(ms)
     }
 
-    // todo to treat function DFDs in the lazy manner (if it's possible)
     override def flatMap[A, B](fa: DFD[A])(f: A => DFD[B]): DFD[B] = {
       val ms = for {
         (a, p) <- dfd2aps(fa)
