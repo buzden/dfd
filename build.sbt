@@ -29,5 +29,5 @@ libraryDependencies ++= Seq(
   "org.typelevel" %% "discipline" % "0.11.0" % Test, // todo to remove as soon as this or newer comes as dep.
 )
 scalacOptions in Test += "-Yrangepos"
-logBuffered in Test := false
-testOptions in Test += Tests.Argument("showtimes")
+logBuffered   in Test := false
+testOptions   in Test += Tests.Argument("showtimes")
