@@ -9,7 +9,7 @@ import cats.syntax.applicativeError._
 import cats.syntax.apply._
 import cats.syntax.foldable._
 import cats.syntax.order._
-import cats.{ApplicativeError, Eq, Monad, Order}
+import cats.{ApplicativeError, CommutativeMonad, Eq, Order}
 import ru.buzden.util.numeric.instances.scala2catsOrdering
 import ru.buzden.util.numeric.syntax._
 
@@ -134,7 +134,7 @@ object DiscreteFiniteDistribution {
 
   // --- cats.Monad instance ---
 
-  implicit def dfdMonad[P: Probability]: Monad[DiscreteFiniteDistribution[?, P]] = new Monad[DiscreteFiniteDistribution[?, P]] {
+  implicit def dfdMonad[P: Probability]: CommutativeMonad[DiscreteFiniteDistribution[?, P]] = new CommutativeMonad[DiscreteFiniteDistribution[?, P]] {
     /** Just a shorter type alias having the `P` type inside */
     type DFD[X] = DiscreteFiniteDistribution[X, P]
 

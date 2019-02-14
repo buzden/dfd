@@ -1,18 +1,18 @@
 package ru.buzden.testing
 package probability.dfd
 
-import cats.{Apply, Eq}
 import cats.data.Validated.Valid
 import cats.data.{NonEmptySet, ValidatedNel}
 import cats.instances.list._
 import cats.instances.map._
 import cats.kernel.laws.discipline.EqTests
 import cats.laws.discipline.SemigroupalTests.Isomorphisms
-import cats.laws.discipline.{ArrowChoiceTests, MonadTests}
+import cats.laws.discipline.{ArrowChoiceTests, CommutativeMonadTests}
 import cats.syntax.eq._
 import cats.syntax.flatMap._
 import cats.syntax.foldable._
 import cats.syntax.functor._
+import cats.{Apply, Eq}
 import org.scalacheck.Arbitrary.arbitrary
 import org.scalacheck.Gen.chooseNum
 import org.scalacheck.Prop.forAllNoShrink
@@ -72,7 +72,7 @@ object DFDSpec extends Specification with ScalaCheck with Discipline { def is = 
   )
 
   def monadLaws(implicit wtf: Isomorphisms[DFD]) = checkAll("discrete finite distribution",
-    MonadTests[DFD].monad[SafeLong, String, SafeLong]
+    CommutativeMonadTests[DFD].commutativeMonad[SafeLong, String, SafeLong]
   )
 
   def arrowLaws = checkAll("probabilistic computation",
