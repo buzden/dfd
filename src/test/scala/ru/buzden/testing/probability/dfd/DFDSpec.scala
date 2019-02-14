@@ -1,7 +1,6 @@
 package ru.buzden.testing
 package probability.dfd
 
-import cats.{Apply, Eq}
 import cats.data.Validated.Valid
 import cats.data.{NonEmptySet, ValidatedNel}
 import cats.instances.list._
@@ -13,6 +12,7 @@ import cats.syntax.eq._
 import cats.syntax.flatMap._
 import cats.syntax.foldable._
 import cats.syntax.functor._
+import cats.{Apply, Eq}
 import org.scalacheck.Arbitrary.arbitrary
 import org.scalacheck.Gen.chooseNum
 import org.scalacheck.Prop.forAllNoShrink
