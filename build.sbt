@@ -17,6 +17,11 @@ def scala2Oldy(v: String): Boolean = v.startsWith("2.12.")
 scalacOptions ++= Seq(
   "-language:higherKinds",
 )
+scalacOptions ++= { if (isDotty.value) Seq(
+  ) else Seq(
+    "-Ypartial-unification",
+  )
+}
 libraryDependencies += "org.typelevel" %% "cats-core" % catsVersion
 addCompilerPlugin("com.olegpy" %% "better-monadic-for" % "0.3.0-M4")
 // Scala version-local stuff
