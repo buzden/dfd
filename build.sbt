@@ -39,12 +39,17 @@ scalacOptions in Test += "-Yrangepos"
 logBuffered   in Test := false
 testOptions   in Test += Tests.Argument("showtimes")
 sources       in Test --= {
-  if (scala2Oldy(scalaVersion.value)) Seq(
+  if (scala2Oldy(scalaVersion.value) || isDotty.value) Seq(
     baseDirectory.value / "src" / "test" / "scala" / "ru" / "buzden" / "testing" / "util" / "numeric" / "instances.scala",
   ) else Nil
 }
 unmanagedSourceDirectories in Test ++= {
-  if (scala2Oldy(scalaVersion.value)) Seq(
+  if (scala2Oldy(scalaVersion.value) || isDotty.value) Seq(
     baseDirectory.value / "src" / "test" / "scala-oldy",
   ) else Nil
 }
+// todo to remove `|| isDotty.value` from the above as soon as standard library of 2.13 comes with dotty.
+
+// Dotty support stuff
+scalacOptions ++= { if (isDotty.value) Seq("-language:Scala2") else Nil }
+libraryDependencies := libraryDependencies.value.map(_.withDottyCompat(scalaVersion.value))
