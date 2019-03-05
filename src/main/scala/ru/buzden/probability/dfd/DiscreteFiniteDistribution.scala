@@ -107,7 +107,7 @@ object DiscreteFiniteDistribution {
 
   def binomial[N: Integral, P: Probability, E[_]: Errorable](n: N, p: P)(implicit ntop: N => P): E[DiscreteFiniteDistribution[N, P]] =
     check[E](s"Binomial coefficient P=$p must be in [0, 1]") { p >= zero[P] && p <= one[P] } *>
-    DiscreteFiniteDistribution[N, P, E]((zero[N] to n).toSet) { k =>
+    DiscreteFiniteDistribution[N, P, E]((zero[N] to n).toSet) { k: N =>
       p.pow(k) * (one[P] - p).pow(n - k) * n.combinationsI(k)
     }
 
@@ -115,7 +115,7 @@ object DiscreteFiniteDistribution {
     check[E](s"N=$N must be non-negative") { N >= zero[N] } *>
     check[E](s"K=$K must lie between 0 and N=$N") { K >= zero[N] && K <= N } *>
     check[E](s"n=$n must lie between 0 and N=$N") { n >= zero[N] && n <= N } *>
-    DiscreteFiniteDistribution[N, P, E](((zero[N] `max` n + K - N) `to` (n `min` K)).toSet) { k =>
+    DiscreteFiniteDistribution[N, P, E](((zero[N] `max` n + K - N) `to` (n `min` K)).toSet) { k: N =>
       ntop(K.combinationsI(k) * (N - K).combinationsI(n - k)) / ntop(N.combinationsI(n))
     }
 
