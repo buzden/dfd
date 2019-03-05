@@ -134,7 +134,12 @@ object DiscreteFiniteDistribution {
 
   // --- cats.Monad instance ---
 
-  implicit def dfdMonad[P: Probability]: CommutativeMonad[DiscreteFiniteDistribution[?, P]] = new CommutativeMonad[DiscreteFiniteDistribution[?, P]] {
+  // this was done with kind-projector before
+  // todo to be replaced with type-lambdas
+  type DFDL[P] = {
+    type L[A] = DiscreteFiniteDistribution[A, P]
+  }
+  implicit def dfdMonad[P: Probability]: CommutativeMonad[DFDL[P]#L] = new CommutativeMonad[DFDL[P]#L] {
     /** Just a shorter type alias having the `P` type inside */
     type DFD[X] = DiscreteFiniteDistribution[X, P]
 
@@ -184,7 +189,12 @@ object DiscreteFiniteDistribution {
 
   final case class ProbabilisticComputation[A, B, P](comp: A => DiscreteFiniteDistribution[B, P]) extends AnyVal
 
-  implicit def pcompArrow[P: Probability]: ArrowChoice[ProbabilisticComputation[?, ?, P]] = new ArrowChoice[ProbabilisticComputation[?, ?, P]] {
+  // this was done with kind-projector before
+  // todo to be replaced with type-lambdas
+  type PCL[P] = {
+    type L[A, B] = ProbabilisticComputation[A, B, P]
+  }
+  implicit def pcompArrow[P: Probability]: ArrowChoice[PCL[P]#L] = new ArrowChoice[PCL[P]#L] {
     /** Just a shorter type alias having the `P` type inside */
     type ~=>[A, B] = ProbabilisticComputation[A, B, P]
 
