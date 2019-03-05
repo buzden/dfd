@@ -15,7 +15,8 @@ def scala2Oldy(v: String): Boolean = v.startsWith("2.12.")
 
 // General stuff
 scalacOptions ++= { if (isDotty.value) Seq(
-    "-language:higherKinds,Scala2",
+    // todo to remove implicitConversions flag as soon as cats are released for dotty.
+    "-language:higherKinds,implicitConversions,Scala2",
   ) else Seq(
     "-language:higherKinds",
     "-Ypartial-unification",
