@@ -14,11 +14,10 @@ lazy val specs2Version = "4.5.1"
 def scala2Oldy(v: String): Boolean = v.startsWith("2.12.")
 
 // General stuff
-scalacOptions ++= Seq(
-  "-language:higherKinds",
-)
 scalacOptions ++= { if (isDotty.value) Seq(
+    "-language:higherKinds,Scala2",
   ) else Seq(
+    "-language:higherKinds",
     "-Ypartial-unification",
   )
 }
@@ -55,5 +54,4 @@ unmanagedSourceDirectories in Test ++= {
 // todo to remove `|| isDotty.value` from the above as soon as standard library of 2.13 comes with dotty.
 
 // Dotty support stuff
-scalacOptions ++= { if (isDotty.value) Seq("-language:Scala2") else Nil }
 libraryDependencies := libraryDependencies.value.map(_.withDottyCompat(scalaVersion.value))
