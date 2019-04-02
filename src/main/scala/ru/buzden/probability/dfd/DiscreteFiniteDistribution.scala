@@ -154,7 +154,7 @@ object DiscreteFiniteDistribution {
       MapDFD(aps `foldMap` { Map(_) })
 
     override def map[A, B](fa: DFD[A])(f: A => B): DFD[B] = {
-      val ms = dfd2aps(fa) `map` { case (a, p) => (f(a), p) }
+      val ms = dfd2aps(fa) `map` { case (a, p) => f(a) -> p }
       aps2dfd(ms)
     }
 
