@@ -20,13 +20,12 @@ scalacOptions ++= { if (isDotty.value) Seq(
     "-language:higherKinds,implicitConversions,Scala2",
   ) else Seq(
     "-language:higherKinds",
-    "-Ypartial-unification",
   )
 }
+scalacOptions ++= (if (scala2Oldy(scalaVersion.value)) Seq("-Ypartial-unification") else Nil)
+
 libraryDependencies += "org.typelevel" %% "cats-core" % catsVersion
 addCompilerPlugin("com.olegpy" %% "better-monadic-for" % "0.3.0-M4")
-// Scala version-local stuff
-scalacOptions ++= (if (scala2Oldy(scalaVersion.value)) Seq("-Ypartial-unification") else Nil)
 
 // Data types stuff
 libraryDependencies ++= Seq(
