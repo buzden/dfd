@@ -1,7 +1,7 @@
 language: scala
 
 scala:
-  - 2.12.8
+  - 2.13.0-M5
 
 jdk:
   - oraclejdk8
@@ -15,7 +15,7 @@ after_success:
 
 matrix:
   include:
-  - scala: 2.13.0-M5
+  - scala: 2.12.8
     script: sbt ++$TRAVIS_SCALA_VERSION compile
     after_success:
 
