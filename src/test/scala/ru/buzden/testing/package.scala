@@ -2,11 +2,13 @@ package ru.buzden
 
 import cats.data.Validated
 import org.scalacheck.Arbitrary.arbitrary
-import org.scalacheck.{Cogen, Gen}
 import org.scalacheck.Gen._
+import org.scalacheck.{Cogen, Gen}
 import org.specs2.matcher.describe.Diffable
 import ru.buzden.util.numeric.syntax.zero
 import spire.math.{Rational, SafeLong}
+
+import scala.util.Try
 
 package object testing {
   // --- Utility functions ---
@@ -65,6 +67,8 @@ package object testing {
     override def toLong(x: Rational): Long = x.toLong
     override def toFloat(x: Rational): Float = x.toFloat
     override def toDouble(x: Rational): Double = x.toDouble
+
+    override def parseString(str: String): Option[Rational] = Try(Rational(str)).toOption
   }
 
   implicit val safeLongIsIntegral: Integral[SafeLong] = new Integral[SafeLong] {
@@ -86,5 +90,7 @@ package object testing {
     override def toLong(x: SafeLong): Long = x.toLong
     override def toFloat(x: SafeLong): Float = x.toFloat
     override def toDouble(x: SafeLong): Double = x.toDouble
+
+    override def parseString(str: String): Option[SafeLong] = Numeric[Long].parseString(str).map(SafeLong(_))
   }
 }

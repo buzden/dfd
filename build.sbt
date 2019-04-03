@@ -5,7 +5,7 @@ version := "0.1"
 val scala2_12_v = "2.12.8"
 val scala2_13_v = "2.13.0-M5"
 
-scalaVersion := scala2_12_v
+scalaVersion := scala2_13_v
 crossScalaVersions := Seq(scala2_13_v, scala2_12_v)
 
 lazy val catsVersion = "1.6.0"
