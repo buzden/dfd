@@ -2,8 +2,8 @@ package ru.buzden
 
 import cats.data.Validated
 import org.scalacheck.Arbitrary.arbitrary
-import org.scalacheck.{Cogen, Gen}
 import org.scalacheck.Gen._
+import org.scalacheck.{Cogen, Gen}
 import org.specs2.matcher.describe.Diffable
 import ru.buzden.util.numeric.syntax.zero
 import spire.math.{Rational, SafeLong}
