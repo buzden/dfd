@@ -184,7 +184,7 @@ object DFDSpec extends Specification with ScalaCheck with Discipline { def is = 
     checkSupport = (np, support) => support ==== binomialSupport(np._1, np._2).map { SafeLong(_:Int) },
     checkProbabilities = { case ((n, p), d) =>
       def bin(k: Int): Rational = binomialCoef(n, k) * p.pow(k) * (one[Rational] - p).pow(n - k)
-      (0 to n) `map` { k => d.pmf(k) ==== bin(k) } `reduce` (_ and _)
+      (0 to n) `map` { k => d.pmf(SafeLong(k)) ==== bin(k) } `reduce` (_ and _)
     }
   )
 
@@ -202,7 +202,7 @@ object DFDSpec extends Specification with ScalaCheck with Discipline { def is = 
     },
     checkProbabilities = { case ((nn, kk, n), d) =>
       def p(k: Int): Rational = binomialCoef(kk, k) * binomialCoef(nn - kk, n - k) / binomialCoef(nn, n)
-      hypergeometricSupport(nn, kk, n) `map` { k => d.pmf(k) ==== p(k) } `reduce` (_ and _)
+      hypergeometricSupport(nn, kk, n) `map` { k => d.pmf(SafeLong(k)) ==== p(k) } `reduce` (_ and _)
     }
   )
 
