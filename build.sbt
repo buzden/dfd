@@ -38,3 +38,13 @@ libraryDependencies ++= Seq(
 scalacOptions in Test += "-Yrangepos"
 logBuffered   in Test := false
 testOptions   in Test += Tests.Argument("showtimes")
+sources       in Test --= {
+  if (scala2Oldy(scalaVersion.value)) Seq(
+    baseDirectory.value / "src" / "test" / "scala" / "ru" / "buzden" / "testing" / "util" / "numeric" / "instances.scala",
+  ) else Nil
+}
+unmanagedSourceDirectories in Test ++= {
+  if (scala2Oldy(scalaVersion.value)) Seq(
+    baseDirectory.value / "src" / "test" / "scala-oldy",
+  ) else Nil
+}
