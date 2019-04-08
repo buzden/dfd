@@ -117,20 +117,20 @@ object DFDSpec extends Specification with ScalaCheck with Discipline { def is = 
   def proportionalCase[A: Arbitrary] =
     proportionalLike[A, Int](
       "proportional",
-      proportional[A, Rational, V],
+      { case (a, as) => proportional[A, Rational, V](a, as:_*) },
       nonNegNum[Int],
       Rational(_, _))
 
   def unnormalizedCase[A: Arbitrary] =
     proportionalLike[A, Rational](
       "unnormalized",
-      unnormalized[A, Rational, V],
+      { case (a, as) => unnormalized[A, Rational, V](a, as:_*) },
       nonNegRational,
       _ / _)
 
   private def proportionalLike[A: Arbitrary, I: Numeric](
     caseN: String,
-    create: ((A, I), (A, I)*) => V[DFD[A]],
+    create: ((A, I), Seq[(A, I)]) => V[DFD[A]],
     genP: Gen[I],
     div: (I, I) => Rational,
   ) = TestCase[A, Rational, List[(A, I)]](
@@ -140,7 +140,7 @@ object DFDSpec extends Specification with ScalaCheck with Discipline { def is = 
       listOfNWithNonZero(as.size, genP) `map` { is => as `zip` is }
     },
 
-    createDfd = l => create(l.head, l.tail: _*),
+    createDfd = l => create(l.head, l.tail),
     checkSupport = (l, s) => s ==== l.filter(_._2 =!= zero[I]).map(_._1).toSet,
 
     checkProbabilities = { (ps, dfd) =>
@@ -184,7 +184,7 @@ object DFDSpec extends Specification with ScalaCheck with Discipline { def is = 
     checkSupport = (np, support) => support ==== binomialSupport(np._1, np._2).map { SafeLong(_:Int) },
     checkProbabilities = { case ((n, p), d) =>
       def bin(k: Int): Rational = binomialCoef(n, k) * p.pow(k) * (one[Rational] - p).pow(n - k)
-      (0 to n) `map` { k => d.pmf(k) ==== bin(k) } `reduce` (_ and _)
+      (0 to n) `map` { k => d.pmf(SafeLong(k)) ==== bin(k) } `reduce` (_ and _)
     }
   )
 
@@ -202,7 +202,7 @@ object DFDSpec extends Specification with ScalaCheck with Discipline { def is = 
     },
     checkProbabilities = { case ((nn, kk, n), d) =>
       def p(k: Int): Rational = binomialCoef(kk, k) * binomialCoef(nn - kk, n - k) / binomialCoef(nn, n)
-      hypergeometricSupport(nn, kk, n) `map` { k => d.pmf(k) ==== p(k) } `reduce` (_ and _)
+      hypergeometricSupport(nn, kk, n) `map` { k => d.pmf(SafeLong(k)) ==== p(k) } `reduce` (_ and _)
     }
   )
 

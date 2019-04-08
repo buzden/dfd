@@ -84,8 +84,11 @@ object DiscreteFiniteDistribution {
     import ru.buzden.util.numeric.instances.numericAdditiveMonoid
     val ps = p1 :: rest.toList
     val sum = ps.foldMap(_._2)
-    check[E]("Sum of probabilities is equal to zero") { sum =!= zero } *>
-    DiscreteFiniteDistribution[A, P, E](ps `foldMap` { case (a, p) => Map(a -> p / sum) })
+    check[E]("Sum of probabilities is equal to zero") { sum =!= zero } *> {
+      // this variable is a workaround of bad type inference in Dotty
+      val w = ps `foldMap` { case (a, p) => Map(a -> p / sum) }
+      DiscreteFiniteDistribution[A, P, E](w)
+    }
   }
 
   def eagerify[A, P: Probability](dfd: DiscreteFiniteDistribution[A, P]): DiscreteFiniteDistribution[A, P] = dfd match {
@@ -102,21 +105,30 @@ object DiscreteFiniteDistribution {
   // --- Examples of discrete finite distributions ---
 
   def bernouli[N: Numeric, P: Probability, E[_]: Errorable](p: P): E[DiscreteFiniteDistribution[N, P]] =
-    check[E](s"Bernouli parameter P=$p must be between 0 and 1") { p >= zero[P] && p <= one[P] } *>
-    DiscreteFiniteDistribution[N, P, E](Map(one[N] -> p, zero[N] -> (one[P] - p)))
+    check[E](s"Bernouli parameter P=$p must be between 0 and 1") { p >= zero[P] && p <= one[P] } *> {
+      // this variable is a workaround of bad type inference in Dotty
+      val w = Map(one[N] -> p, zero[N] -> (one[P] - p))
+      DiscreteFiniteDistribution[N, P, E](w)
+    }
 
   def binomial[N: Integral, P: Probability, E[_]: Errorable](n: N, p: P)(implicit ntop: N => P): E[DiscreteFiniteDistribution[N, P]] =
-    check[E](s"Binomial coefficient P=$p must be in [0, 1]") { p >= zero[P] && p <= one[P] } *>
-    DiscreteFiniteDistribution[N, P, E]((zero[N] to n).toSet) { k =>
-      p.pow(k) * (one[P] - p).pow(n - k) * n.combinationsI(k)
+    check[E](s"Binomial coefficient P=$p must be in [0, 1]") { p >= zero[P] && p <= one[P] } *> {
+      // this variable is a workaround of bad type inference in Dotty
+      val w = (zero[N] to n).toSet
+      DiscreteFiniteDistribution[N, P, E](w) { k: N =>
+        p.pow(k) * (one[P] - p).pow(n - k) * n.combinationsI(k)
+      }
     }
 
   def hypergeometric[N: Integral, P: Probability, E[_]: Errorable](N: N, K: N, n: N)(implicit ntop: N => P): E[DiscreteFiniteDistribution[N, P]] =
     check[E](s"N=$N must be non-negative") { N >= zero[N] } *>
     check[E](s"K=$K must lie between 0 and N=$N") { K >= zero[N] && K <= N } *>
-    check[E](s"n=$n must lie between 0 and N=$N") { n >= zero[N] && n <= N } *>
-    DiscreteFiniteDistribution[N, P, E](((zero[N] `max` n + K - N) `to` (n `min` K)).toSet) { k =>
-      ntop(K.combinationsI(k) * (N - K).combinationsI(n - k)) / ntop(N.combinationsI(n))
+    check[E](s"n=$n must lie between 0 and N=$N") { n >= zero[N] && n <= N } *> {
+      // this variable is a workaround of bad type inference in Dotty
+      val w = ((zero[N] `max` n + K - N) `to` (n `min` K)).toSet
+      DiscreteFiniteDistribution[N, P, E](w) { k: N =>
+        ntop(K.combinationsI(k) * (N - K).combinationsI(n - k)) / ntop(N.combinationsI(n))
+      }
     }
 
   def uniform[A, P: Probability](support: NonEmptySet[A]): DiscreteFiniteDistribution[A, P] = {
@@ -134,7 +146,12 @@ object DiscreteFiniteDistribution {
 
   // --- cats.Monad instance ---
 
-  implicit def dfdMonad[P: Probability]: CommutativeMonad[DiscreteFiniteDistribution[?, P]] = new CommutativeMonad[DiscreteFiniteDistribution[?, P]] {
+  // this was done with kind-projector before
+  // todo to be replaced with type-lambdas
+  type DFDL[P] = {
+    type L[A] = DiscreteFiniteDistribution[A, P]
+  }
+  implicit def dfdMonad[P: Probability]: CommutativeMonad[DFDL[P]#L] = new CommutativeMonad[DFDL[P]#L] {
     /** Just a shorter type alias having the `P` type inside */
     type DFD[X] = DiscreteFiniteDistribution[X, P]
 
@@ -184,7 +201,12 @@ object DiscreteFiniteDistribution {
 
   final case class ProbabilisticComputation[A, B, P](comp: A => DiscreteFiniteDistribution[B, P]) extends AnyVal
 
-  implicit def pcompArrow[P: Probability]: ArrowChoice[ProbabilisticComputation[?, ?, P]] = new ArrowChoice[ProbabilisticComputation[?, ?, P]] {
+  // this was done with kind-projector before
+  // todo to be replaced with type-lambdas
+  type PCL[P] = {
+    type L[A, B] = ProbabilisticComputation[A, B, P]
+  }
+  implicit def pcompArrow[P: Probability]: ArrowChoice[PCL[P]#L] = new ArrowChoice[PCL[P]#L] {
     /** Just a shorter type alias having the `P` type inside */
     type ~=>[A, B] = ProbabilisticComputation[A, B, P]
 
