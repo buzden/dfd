@@ -16,7 +16,7 @@ after_success:
 
 matrix:
   include:
-  - scala: 0.13.0-RC1
+  - scala: 0.14.0-RC1
     script: sbt ++$TRAVIS_SCALA_VERSION compile
     after_success:
 

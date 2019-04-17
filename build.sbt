@@ -4,7 +4,7 @@ version := "0.1"
 
 val scala2_12_v = "2.12.8"
 val scala2_13_v = "2.13.0-M5"
-val dotty_v     = "0.13.0-RC1"
+val dotty_v     = "0.14.0-RC1"
 
 scalaVersion := scala2_13_v
 crossScalaVersions := Seq(scala2_12_v, scala2_13_v, dotty_v)
